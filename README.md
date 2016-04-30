@@ -5,11 +5,12 @@ ToxSuite is a C library.
 
 ### Features
 
-* modular
+* modular : code is split to different files
 * write message to friend with standard stream thanks to fopencookie()
-* decryption/encryption support of toxfile
+* [libsodium] : decryption/encryption support of toxfile
 * [captcha] : can generate captcha to deal with spammer
 * [libsndfile] : audio streaming/recording
+* [ylog] : low-level logging system
 
 The ToxSuite comes with two tools :
 
@@ -45,7 +46,9 @@ Help options:
       --usage                       Display brief usage message
 ```
 
+   [libsodium]: <https://github.com/jedisct1/libsodium>
    [libsndfile]: <http://www.mega-nerd.com/libsndfile>
    [captcha]: <https://github.com/ITikhonov/captcha>
    [jsmn]: <https://github.com/zserge/jsmn>
+   [ylog]: <https://dev.yorhel.nl/ylib> 
   
