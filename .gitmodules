@@ -1,0 +1,6 @@
+[submodule "src/jsmn"]
+	path = src/jsmn
+	url = https://github.com/zserge/jsmn
+[submodule "src/captcha"]
+	path = src/captcha
+	url = https://github.com/ITikhonov/captcha
