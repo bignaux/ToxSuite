@@ -1,7 +1,7 @@
 # ToxSuite
 __NOT READY FOR PRODUCTION__
 
-ToxSuite is a C library to develop services and tools for Tox.
+ToxSuite is a C library to develop services and tools for Tox.  
 See [tox.chat](https://tox.chat) for information about Tox in general.  
 
 ---
@@ -24,14 +24,14 @@ The ToxSuite comes with two tools :
 
 Currently, ToxSuite uses qmake to generate Makefile and is only tested on GNU/Linux 64 bits.
 
-### build toxdatatool
+### Build Toxdatatool
 
 ```sh
 $ qmake -config toxdatatool
 $ make
 ```
 
-### build suit
+### Build Suit
 
 ```sh
 $ qmake -config suite

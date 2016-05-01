@@ -24,6 +24,7 @@
 
 #include <getopt.h>
 
+#ifdef CAPTCHA
 void send_capcha(Tox *tox, uint32_t friend_number,const unsigned char gif[gifsize], const unsigned char l[6])
 {
     FILE *capchafile = NULL;
@@ -35,6 +36,7 @@ void send_capcha(Tox *tox, uint32_t friend_number,const unsigned char gif[gifsiz
     fclose(capchafile);
     add_filesender(tox, friend_number, capchafilename);
 }
+#endif
 
 /**
  * @brief format friends mesg to be parse by getopt_long()
@@ -134,8 +136,7 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
 		static struct option long_options[] = {
 			{ "addfriend",	required_argument,     NULL,		     'a' },
 			{ "banner",	no_argument,	       NULL,		     'b' },
-			{ "callme",	optional_argument,     NULL,		     'c' },
-            { "capcha", no_argument,	       NULL,		     'd' },
+            { "callme",	optional_argument,     NULL,		     'c' },
 			{ "forgetme",	no_argument,	       NULL,		     'g' },
 			{ "friends",	no_argument,	       NULL,		     'f' },
 			{ "info",	no_argument,	       NULL,		     'i' },
@@ -203,15 +204,6 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
         case 'f':
             friends_info_print(stream, friends_info);
 			break;
-
-        case 'd':;
-            unsigned char response[6];
-            unsigned char gif[17646];
-
-            generate_capcha(gif, response);
-            send_capcha(tox, friend_number, gif, response);
-            fprintf(stream, "response : %s\n", response);
-            break;
 
 		case 'g':
 			fprintf(stream, "Bye old friend... I'll never forget you!\n");

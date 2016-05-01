@@ -5,6 +5,7 @@ TEMPLATE = app
 CONFIG += console
 CONFIG -= app_bundle
 CONFIG -= qt
+CONFIG -= captcha
 
 unix: CONFIG += link_pkgconfig
 unix: PKGCONFIG += libsodium
@@ -13,11 +14,15 @@ unix: PKGCONFIG += libtoxcore
 GIT_VERSION = $$system(git describe --abbrev=8 --dirty --always --tags)
 DEFINES += GIT_VERSION=\\\"$$GIT_VERSION\\\"
 
-captcha.target = .buildfile
-captcha.commands = make -f src/captcha/Makefile
-QMAKE_EXTRA_TARGETS += captcha
-PRE_TARGETDEPS += .buildfile
-
+# dirty lib, disabled.
+captcha {
+    captcha.target = .buildfile
+    captcha.commands = make -f src/captcha/Makefile
+    QMAKE_EXTRA_TARGETS += captcha
+    PRE_TARGETDEPS += .buildfile
+    LIBS += src/captcha/libcaptcha.o
+    DEFINES += CAPTCHA
+}
 
 suit {
     TARGET = suit
@@ -48,7 +53,6 @@ suit {
 
     unix: PKGCONFIG += sndfile
     unix: PKGCONFIG += libtoxav
-    LIBS += src/captcha/libcaptcha.o
 }
 
 toxdatatool {
@@ -69,6 +73,5 @@ toxdatatool {
     src/toxdata.c \
     src/ylog/ylog.c \
     src/misc.c
-LIBS += src/captcha/libcaptcha.o
 }
 

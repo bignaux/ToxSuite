@@ -20,6 +20,7 @@
 #include <ctype.h> // toupper
 //#include "file.h"
 
+#ifdef CAPTCHA
 void generate_capcha(unsigned char gif[gifsize], unsigned char l[6])
 {
     unsigned char im[70*200];
@@ -27,6 +28,7 @@ void generate_capcha(unsigned char gif[gifsize], unsigned char l[6])
     captcha(im,l);
     makegif(im,gif);
 }
+#endif
 
 ssize_t toxstream_write(void *c, const char *message, size_t size)
 {

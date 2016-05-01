@@ -28,10 +28,12 @@ struct toxstream_cookie {
 };
 
 //ugly capcha library
+#ifdef CAPTCHA
 const int gifsize;
 void captcha(unsigned char im[70*200], unsigned char l[6]);
 void makegif(unsigned char im[70*200], unsigned char gif[gifsize]);
 void generate_capcha(unsigned char gif[gifsize], unsigned char l[6]);
+#endif
 
 ssize_t toxstream_write(void *c, const char *message, size_t size);
 void print_secretkey(FILE *stream, const Tox *tox);
