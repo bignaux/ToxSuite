@@ -6,7 +6,7 @@ addons:
     - ubuntu-sdk-team
 #    - libsodium
     packages:
-    - qt5-qmake
+    - qt5-default
     - autotools-dev
     - automake
     - pkg-config
@@ -24,6 +24,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "linux"   ]; then export PKG_CONFIG_PATH="$(pwd)/TRAVIS_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"; fi
   - echo $PKG_CONFIG_PATH
   - pwd
+  - qmake -v
   - qmake -config suit
   - make
   - qmake -config toxdatatool
