@@ -10,4 +10,8 @@ addons:
     - automake
     
 script: 
-  - qmake -v
+  - qmake -config suit
+  - make
+  - qmake -config toxdatatool
+  - make
+
