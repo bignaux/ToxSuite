@@ -20,7 +20,10 @@ addons:
 before_script:
   - if [ "$TRAVIS_OS_NAME" = "linux"   ]; then sh ./travis/linux-before.sh;   fi
   
-script: 
+script:
+  - if [ "$TRAVIS_OS_NAME" = "linux"   ]; then PKG_CONFIG_PATH="$(pwd)/TRAVIS_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH" make; fi
+  - pwd
+  - cd ToxSuite
   - qmake -config suit
   - make
   - qmake -config toxdatatool

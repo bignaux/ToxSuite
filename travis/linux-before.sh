@@ -1,6 +1,7 @@
 #!/bin/sh
 
 get() {
+	echo "Installing $1 in $PWD/TRAVIS_PREFIX"
     mkdir -p TRAVIS_PREFIX
     curl "$1" | tar -C TRAVIS_PREFIX -xJ
 }
