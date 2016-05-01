@@ -1,4 +1,4 @@
-QMAKE_CFLAGS = -std=gnu99 -Wno-unused-parameter -Wno-unused-result
+QMAKE_CFLAGS = -std=gnu99 -Wno-unused-parameter -Wno-unused-result -Wformat-security
 # -Wno-unused
 
 TEMPLATE = app
@@ -27,8 +27,12 @@ captcha {
     DEFINES += CAPTCHA
 }
 
+
+# on container :
+# $ ldd --version
+# ldd (Ubuntu EGLIBC 2.15-0ubuntu10.13) 2.15
 # clock_gettime() : Link with -lrt (only for glibc versions before 2.17).
-QMAKE_CFLAGS += -lrt
+LIBS += -lrt
 
 suit {
     TARGET = suit
