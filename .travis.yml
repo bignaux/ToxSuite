@@ -11,9 +11,11 @@ addons:
     - automake
     - pkg-config
     - libopus-dev
-    - libvpx-dev 
-#   - libsodium-dev
+    - libvpx-dev
+    - libpopt-dev
     - libsndfile1-dev
+# missing :
+#   - libsodium-dev
 #    - libtoxcore-dev
 #    - libtoxav-dev
 
