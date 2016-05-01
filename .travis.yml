@@ -1,1 +1,12 @@
 language: c
+
+addons:
+  apt:
+    packages:
+    - qt5-qmake
+    - autotools-dev
+    - automake
+    
+script: 
+  - qmake -config suit
+  - make 
