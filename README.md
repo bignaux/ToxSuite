@@ -2,7 +2,10 @@
 __NOT READY FOR PRODUCTION__
 
 ToxSuite is a C library to develop services and tools for Tox.  
-See [tox.chat](https://tox.chat) for information about Tox in general.  
+See [tox.chat](https://tox.chat) for information about Tox in general.   
+
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/8730/badge.svg)](https://scan.coverity.com/projects/bignaux-toxsuite)
+[![Build Status](https://travis-ci.org/bignaux/ToxSuite.svg?branch=master)](https://travis-ci.org/bignaux/ToxSuite)
 
 ---
 
