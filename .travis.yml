@@ -9,6 +9,9 @@ addons:
     - autotools-dev
     - automake
     - libsodium-dev
+    - libsndfile1-dev
+    - libtoxcore-dev
+    - libtoxav-dev
     
 script: 
   - qmake -config suit
