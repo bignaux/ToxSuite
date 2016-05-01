@@ -8,5 +8,4 @@ addons:
     - automake
     
 script: 
-  - qmake -config suit
-  - make 
+  - qmake -v

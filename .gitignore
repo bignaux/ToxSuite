@@ -42,3 +42,4 @@
 Makefile
 suit
 toxdatatool
+cov-int/
