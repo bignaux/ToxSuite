@@ -39,6 +39,11 @@ captcha {
 TRAVIS = $$(TRAVIS)
 !isEmpty(TRAVIS) {
     LIBS += -lrt
+    # workaround to use static toxcore lib build against a recent glibc
+    # The pb occurs in this case :
+    #  * you're using old glibc < 2.17 2
+    #  * you don't use toxcore/network.c at all.
+    #  * you're not using clock_gettime() in your software
     QMAKE_LFLAGS += -Wl,--no-as-needed
 }
 
