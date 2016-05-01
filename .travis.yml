@@ -18,7 +18,7 @@ addons:
 #    - libtoxav-dev
 
 before_script:
-  - if [ "$TRAVIS_OS_NAME" = "linux"   ]; then ./travis/linux-before.sh;   fi
+  - if [ "$TRAVIS_OS_NAME" = "linux"   ]; then sh ./travis/linux-before.sh;   fi
   
 script: 
   - qmake -config suit
