@@ -37,7 +37,6 @@
 
 static bool signal_exit = false;
 
-#define VERSION "0.0.1"
 #define FRIEND_PURGE_INTERVAL SEC_PER_HOUR * HOUR_PER_DAY * 30
 #define GROUP_PURGE_INTERVAL 3600
 
@@ -94,7 +93,7 @@ struct suit_info *suit_info_new(struct suit_info *si)
     si->data_filename = strdup("data.tox");
     si->last_purge = 0;
     si->version = malloc(40);
-    sprintf(si->version,"%s+%s", VERSION, GIT_VERSION);
+    sprintf(si->version,"%s-%s", VERSION, GIT_VERSION);
 
     INIT_LIST_HEAD(&si->friends_info);
     return si;

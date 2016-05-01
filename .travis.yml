@@ -8,6 +8,7 @@ addons:
     - qt5-default
     - autotools-dev
     - automake
+    - libsodium-dev
     
 script: 
   - qmake -config suit
@@ -15,3 +16,5 @@ script:
   - qmake -config toxdatatool
   - make
 
+notifications:
+  email: false

@@ -11,8 +11,11 @@ unix: CONFIG += link_pkgconfig
 unix: PKGCONFIG += libsodium
 unix: PKGCONFIG += libtoxcore
 
+VERSION    = 0.0.1
 GIT_VERSION = $$system(git describe --abbrev=8 --dirty --always --tags)
 DEFINES += GIT_VERSION=\\\"$$GIT_VERSION\\\"
+DEFINES += VERSION=\\\"$$VERSION\\\"
+
 
 # dirty lib, disabled.
 captcha {
@@ -75,3 +78,4 @@ toxdatatool {
     src/misc.c
 }
 
+#INSTALLS += suit
