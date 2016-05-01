@@ -1,10 +1,6 @@
 #ifndef _TOX_PROFILE_
 #define _TOX_PROFILE_
 
-#include <tox/tox.h>
-#include <tox/toxav.h>
-#include <tox/toxencryptsave.h>
-#include <sodium.h>
 
 #include "friend.h"
 #include "list.h"

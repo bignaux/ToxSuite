@@ -14,7 +14,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <time.h>
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
@@ -26,11 +25,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#include <tox/tox.h>
-#include <tox/toxav.h>
-#include <tox/toxencryptsave.h>
-#include <sodium.h>
 
 #include "friend.h"
 #include "toxdata.h"

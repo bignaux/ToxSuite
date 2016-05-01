@@ -20,6 +20,10 @@
 
 #include <time.h>
 
+#include <tox/tox.h>
+#include <tox/toxencryptsave.h>
+#include <sodium.h>
+
 static bool shouldSaveConfig = false;
 
 bool toxdata_get_shouldSaveConfig(void)
