@@ -6,7 +6,7 @@ addons:
     - ubuntu-sdk-team
 #    - libsodium
     packages:
-    - qt5-default
+    - qt5-qmake
     - autotools-dev
     - automake
     - pkg-config
