@@ -7,6 +7,10 @@ CONFIG -= app_bundle
 CONFIG -= qt
 CONFIG -= captcha
 
+# link with gcc instead of g++
+QMAKE_LINK = $$QMAKE_LINK_C
+QMAKE_LFLAGS += -Wl,--as-needed
+
 unix: CONFIG += link_pkgconfig ## enable the PKGCONFIG feature
 unix: PKGCONFIG += libsodium
 unix: PKGCONFIG += libtoxcore
@@ -32,9 +36,9 @@ captcha {
 # $ ldd --version
 # ldd (Ubuntu EGLIBC 2.15-0ubuntu10.13) 2.15
 # clock_gettime() : Link with -lrt (only for glibc versions before 2.17).
-TRAVIS = $$TRAVIS
-equals(TRAVIS, true) {
-    LIBS += -lrt --as-needed
+TRAVIS = $$(TRAVIS)
+!isEmpty(TRAVIS) {
+    LIBS += -lrt
 }
 
 suit {
