@@ -30,8 +30,10 @@ script:
   - qmake -v
   - qmake -config suit
   - make
+  - make distclean
   - qmake -config toxdatatool
   - make
+  - make distclean
 
 notifications:
   email: false
