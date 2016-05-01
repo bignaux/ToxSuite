@@ -2,6 +2,8 @@ language: c
 
 addons:
   apt:
+    sources:
+    - ubuntu-sdk-team
     packages:
     - qt5-default
     - autotools-dev
