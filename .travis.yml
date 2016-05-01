@@ -26,6 +26,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "linux"   ]; then export PKG_CONFIG_PATH="$(pwd)/TRAVIS_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"; fi
   - echo $PKG_CONFIG_PATH
   - pwd
+  - ldd --version
   - qmake -v
   - qmake -config suit
   - make

@@ -7,7 +7,7 @@ CONFIG -= app_bundle
 CONFIG -= qt
 CONFIG -= captcha
 
-unix: CONFIG += link_pkgconfig
+unix: CONFIG += link_pkgconfig ## enable the PKGCONFIG feature
 unix: PKGCONFIG += libsodium
 unix: PKGCONFIG += libtoxcore
 
@@ -26,6 +26,9 @@ captcha {
     LIBS += src/captcha/libcaptcha.o
     DEFINES += CAPTCHA
 }
+
+# clock_gettime() : Link with -lrt (only for glibc versions before 2.17).
+QMAKE_CFLAGS += -lrt
 
 suit {
     TARGET = suit
