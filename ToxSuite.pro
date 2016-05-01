@@ -83,6 +83,8 @@ toxdatatool {
     src/toxdata.c \
     src/ylog/ylog.c \
     src/misc.c
+
+unix: PKGCONFIG += libtoxav
 }
 
 #INSTALLS += suit
