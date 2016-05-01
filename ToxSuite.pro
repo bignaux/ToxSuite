@@ -9,7 +9,7 @@ CONFIG -= captcha
 
 # link with gcc instead of g++
 QMAKE_LINK = $$QMAKE_LINK_C
-QMAKE_LFLAGS += -Wl,--as-needed
+#QMAKE_LFLAGS += -Wl,--as-needed
 
 unix: CONFIG += link_pkgconfig ## enable the PKGCONFIG feature
 unix: PKGCONFIG += libsodium
@@ -39,6 +39,7 @@ captcha {
 TRAVIS = $$(TRAVIS)
 !isEmpty(TRAVIS) {
     LIBS += -lrt
+    QMAKE_LFLAGS += -Wl,--no-as-needed
 }
 
 suit {
