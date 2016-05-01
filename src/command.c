@@ -224,7 +224,7 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
             unused = fread(buffer, sizeof(char), file_size, file);
 			fclose(file);
             buffer[file_size] = '\0';
-			fprintf(stream, buffer);
+            fprintf(stream, "%s", buffer);
 			break;
         case 's':
             fprintf(stream,

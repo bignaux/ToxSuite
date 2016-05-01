@@ -326,7 +326,7 @@ struct record *audio_load(const char * filename)
     rec->samples_count = sf_readf;
 
     if(sf_close(sndfile)) {
-        yerr(sf_strerror(NULL));
+        yerr("%s", sf_strerror(NULL));
     }
     return rec;
 }
@@ -343,7 +343,7 @@ void audio_write(const char *destfile, const struct record *rec)
 
     if (!(outfile = sf_open(destfile, SFM_WRITE, &sfinfo))) {
         ydebug("Not able to open output file %s.", destfile);
-        puts(sf_strerror(NULL));
+        yerr("%s", sf_strerror(NULL));
         return;
     }
 

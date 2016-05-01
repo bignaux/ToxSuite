@@ -44,7 +44,7 @@ void tox_file_chunk_request(Tox *tox, uint32_t friend_number, uint32_t file_numb
 				file_senders[i].file = 0;
 				char msg[512];
                 sprintf(msg, "%u file transfer: %u completed", file_senders[i].friendnum, file_senders[i].filenumber);
-                yinfo(msg);
+                yinfo("%s", msg);
 				break;
 			}
 
@@ -97,11 +97,11 @@ void file_request_accept(Tox *tox, uint32_t friend_number, uint32_t file_number,
 
 	char msg[512];
     sprintf(msg, "%u is sending us: %s of size %llu", friend_number, filename, (long long unsigned int)file_size);
-    yinfo(msg);
+    yinfo("%s", msg);
 
 	if (tox_file_control(tox, friend_number, file_number, TOX_FILE_CONTROL_RESUME, 0)) {
 		sprintf(msg, "Accepted file transfer. (saving file as: %u.%u.bin)", friend_number, file_number);
-        yinfo(msg);
+        yinfo("%s", msg);
 	} else
         yinfo("Could not accept file transfer.");
 }
@@ -112,7 +112,7 @@ void file_print_control(Tox *tox, uint32_t friend_number, uint32_t file_number, 
 	char msg[512] = { 0 };
 
     sprintf(msg, "control %u received", control);
-    yinfo(msg);
+    yinfo("%s", msg);
 
 	if (control == TOX_FILE_CONTROL_CANCEL) {
 		unsigned int i;
@@ -124,7 +124,7 @@ void file_print_control(Tox *tox, uint32_t friend_number, uint32_t file_number, 
 				file_senders[i].file = 0;
 				char msg[512];
                 sprintf(msg, "%u file transfer: %u cancelled", file_senders[i].friendnum, file_senders[i].filenumber);
-                yinfo(msg);
+                yinfo("%s", msg);
                 // TODO int unlink (const char *filename)
 			}
 		}
@@ -137,7 +137,7 @@ void write_file(Tox *tox, uint32_t friendnumber, uint32_t filenumber, uint64_t p
 	if (length == 0) {
 		char msg[512];
         sprintf(msg, "%u file transfer: %u completed", friendnumber, filenumber);
-        yinfo(msg);
+        yinfo("%s", msg);
 		return;
 	}
 
