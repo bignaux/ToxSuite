@@ -200,9 +200,9 @@ int main(int argc, char **argv)
     struct timespec tsav = { 0, 0 };
     struct timespec tsfriend = { 0, 0 };
     struct timespec tscalltest = { 0, 0 };
-    struct timespec tssleep = { 0, 0 };
+//    struct timespec tssleep = { 0, 0 };
     struct timespec tselasped = { 0, 0 };
-    struct timespec tsantispam = { 0, 0 };
+//    struct timespec tsantispam = { 0, 0 };
 
 //    memcpy(&tsprev, &tscalltest, sizeof(struct timespec));
 
