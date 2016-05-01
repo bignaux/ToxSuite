@@ -3,7 +3,7 @@ language: c
 addons:
   apt:
     packages:
-    - qt5-qmake
+    - qt5-default
     - autotools-dev
     - automake
     
