@@ -31,8 +31,14 @@
 # Debug files
 *.dSYM/
 
-# IDE and others
+# IDE and others editors
 *.pro.user
+*.backup
 
 # Tox
 *.tox
+
+# specifics	
+Makefile
+suit
+toxdatatool
