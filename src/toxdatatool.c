@@ -41,6 +41,9 @@ int main(int argc, char *argv[])
     struct list_head friends_info;
     INIT_LIST_HEAD(&friends_info);
 
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+
     bool saveflag = false;
     char *passphrase = NULL;
     char *toxfile = NULL;
