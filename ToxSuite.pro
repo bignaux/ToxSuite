@@ -32,7 +32,9 @@ captcha {
 # $ ldd --version
 # ldd (Ubuntu EGLIBC 2.15-0ubuntu10.13) 2.15
 # clock_gettime() : Link with -lrt (only for glibc versions before 2.17).
-LIBS += -lrt
+equals(TRAVIS, true) {
+    LIBS += -lrt
+}
 
 suit {
     TARGET = suit
@@ -83,8 +85,6 @@ toxdatatool {
     src/toxdata.c \
     src/ylog/ylog.c \
     src/misc.c
-
-unix: PKGCONFIG += libtoxav
 }
 
 #INSTALLS += suit
