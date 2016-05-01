@@ -4,15 +4,18 @@ addons:
   apt:
     sources:
     - ubuntu-sdk-team
-    - libsodium
+#    - libsodium
     packages:
     - qt5-default
     - autotools-dev
     - automake
-    - libsodium-dev
+    - pkg-config
+    - libopus-dev
+    - libvpx-dev 
+#   - libsodium-dev
     - libsndfile1-dev
-    - libtoxcore-dev
-    - libtoxav-dev
+#    - libtoxcore-dev
+#    - libtoxav-dev
 
 before_script:
   - if [ "$TRAVIS_OS_NAME" = "linux"   ]; then ./travis/linux-before.sh;   fi
