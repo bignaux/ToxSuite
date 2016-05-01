@@ -42,8 +42,8 @@ int main(int argc, char *argv[])
     INIT_LIST_HEAD(&friends_info);
 
     //workaround for old glibc
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+//    struct timespec ts;
+//    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
 
     bool saveflag = false;
     char *passphrase = NULL;
