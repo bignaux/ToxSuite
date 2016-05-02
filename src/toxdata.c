@@ -43,8 +43,9 @@ int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filena
     struct stat sb;
     size_t szread;
 
-    uint8_t *read_data = NULL;
+    uint8_t *cypher_data = NULL;
     uint8_t *save_data = NULL;
+    int exit_code = EXIT_SUCCESS;
 
     if (!file)
         return -1;
@@ -55,36 +56,37 @@ int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filena
 
     size_t file_size = sb.st_size;
 
-    read_data = malloc(file_size * sizeof(uint8_t));
-    szread = fread(read_data, sizeof(uint8_t), file_size, file);
+    save_data = malloc(file_size * sizeof(uint8_t));
+    szread = fread(save_data, sizeof(uint8_t), file_size, file);
     if (szread != file_size) {
         ferror(file);
         yerr("An error occurred reading %s.",data_filename);
         fclose(file);
-        free(read_data);
-        return -1;
+        file = NULL;
+        exit_code = EXIT_FAILURE;
+        goto cleanup;
     }
     fclose(file);
 
-    encrypted = tox_is_data_encrypted(read_data);
+    encrypted = tox_is_data_encrypted(save_data);
     if (encrypted) {
         if (!passphrase) {
             ywarn("Encrypted profile, you must supply the passphrase.");
-            free(read_data);
-            return -1;
+            exit_code = EXIT_FAILURE;
+            goto cleanup;
         }
-        save_data = malloc(file_size * sizeof(uint8_t));
-        tox_pass_decrypt(read_data, file_size, (uint8_t*)passphrase, strlen(passphrase),
-                         save_data, &decrypt_error);
-        free(read_data);
+        cypher_data = malloc(file_size * sizeof(uint8_t));
+        tox_pass_decrypt(save_data, file_size, (uint8_t*)passphrase, strlen(passphrase),
+                         cypher_data, &decrypt_error);
+        free(save_data);
+        save_data = cypher_data;
 
         if (decrypt_error != TOX_ERR_DECRYPTION_OK) {
             ywarn("tox_pass_decrypt() error %d",decrypt_error);
-            free(save_data);
-            return -1;
+            exit_code = EXIT_FAILURE;
+            goto cleanup;
         }
     }
-    else save_data = read_data;
 
     options->savedata_data = save_data;
     options->savedata_type = TOX_SAVEDATA_TYPE_TOX_SAVE;
@@ -93,16 +95,16 @@ int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filena
     // TODO move tox_new code and avoid have a **tox parameter here ?
     TOX_ERR_NEW err;
     *tox = tox_new(options, &err);
-    free(save_data);
 
     if (err != TOX_ERR_NEW_OK)
-    {
-        free(date);
-        return -1;
-    }
+        exit_code = EXIT_FAILURE;
+
     yinfo("%s %s loaded, last modification : %s",encrypted ? "Encrypted" : "clear", data_filename, date);
+
+cleanup:
     free(date);
-    return 0;
+    free(save_data);
+    return exit_code;
 }
 
 int save_profile(Tox *tox, const char *filename, const char *passphrase)

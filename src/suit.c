@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 
     signal(SIGINT, handle_signal);
 
-    size_t friend_list_size;
+    size_t size;
 
     /* Our process ID and Session ID */
     pid_t pid, sid;
@@ -239,21 +239,24 @@ int main(int argc, char **argv)
     /* set to user config
      *
      */
-    size_t size = strlen(name);
-    if( size > TOX_MAX_NAME_LENGTH)
-    {
-        size = TOX_MAX_NAME_LENGTH;
-        ywarn("$SUIT_NAME is too long,will be truncated.");
+    if(!name) {
+        size = strlen(name);
+        if( size > TOX_MAX_NAME_LENGTH)
+        {
+            size = TOX_MAX_NAME_LENGTH;
+            ywarn("$SUIT_NAME is too long,will be truncated.");
+        }
+        tox_self_set_name(si->tox, (uint8_t *)name, size, NULL);
     }
-    tox_self_set_name(si->tox, (uint8_t *)name, size, NULL);
-
-    size = strlen(status_msg);
-    if (size > TOX_MAX_STATUS_MESSAGE_LENGTH)
-    {
-        size = TOX_MAX_STATUS_MESSAGE_LENGTH;
-        ywarn("$SUIT_STATUSMSG is too long,will be truncated");
+    if(!status_msg) {
+        size = strlen(status_msg);
+        if (size > TOX_MAX_STATUS_MESSAGE_LENGTH)
+        {
+            size = TOX_MAX_STATUS_MESSAGE_LENGTH;
+            ywarn("$SUIT_STATUSMSG is too long,will be truncated");
+        }
+        tox_self_set_status_message(si->tox, (uint8_t *)status_msg, size, NULL);
     }
-    tox_self_set_status_message(si->tox, (uint8_t *)status_msg, size, NULL);
 
     /* Get connection.
      *
@@ -268,7 +271,7 @@ int main(int argc, char **argv)
     client_info_print(stdout, &si->own_info);
     callbacks_init(si);
     calltest_init(si->toxav);
-    friends_info_init(si->tox, &si->friends_info, &friend_list_size);
+    friends_info_init(si->tox, &si->friends_info, &size);
 
     uint64_t tox_delay = 0,
             toxav_delay = 0,

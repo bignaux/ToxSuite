@@ -1,7 +1,7 @@
 QMAKE_CFLAGS = -std=gnu99 -Wall -Wno-unused-parameter -Wno-unused-result -Wformat-security
 # -Wno-unused
 
-TEMPLATE = app
+#TEMPLATE = app
 CONFIG += console
 CONFIG -= app_bundle
 CONFIG -= qt
@@ -101,5 +101,4 @@ toxdatatool {
 #toxdatatool.path = /usr/bin
 #suit.path = /usr/bin/
 #INSTALLS += suit toxdatatool
-
 #QMAKE_EXTRA_TARGETS += suit toxdatatool
