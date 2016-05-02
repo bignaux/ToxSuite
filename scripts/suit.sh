@@ -14,6 +14,14 @@ suitinfo () {
 	toxdatatool -p $SUIT_HOME/data.tox -s $SUIT_PASSPHRASE
 }
 
+suitenv () {
+	echo SUIT_HOME : $SUIT_HOME
+    echo SUIT_PASSPHRASE : $SUIT_PASSPHRASE
+    echo SUIT_NAME : $SUIT_NAME
+    echo SUIT_STATUSMSG : $SUIT_STATUSMSG
+    echo YLOG_DEFAULT : $YLOG_DEFAULT
+}
+
 # dont provide trailing / on path
 declare -x SUIT_HOME="/home/genesis/suit"
 declare -x SUIT_PASSPHRASE="somethingintheway"
