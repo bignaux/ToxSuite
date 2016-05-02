@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
     tox_options_default(&options);
 
     if (!access(toxfile, R_OK|W_OK)) {
-        if (load_profile(&apptox, &options, toxfile, passphrase)) {
+        if (!load_profile(&apptox, &options, toxfile, passphrase)) {
             //            print_option(&options);
         } else {
             printf("Failed to load data from disk\n");

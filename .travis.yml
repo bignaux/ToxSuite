@@ -14,7 +14,7 @@ addons:
     notification_email: ronan@aimao.org
     build_command_prepend: "qmake -config suit"
     build_command:   "make -j 4"
-    branch_pattern: master
+    branch_pattern: coverity_scan
 
 addons:
   apt:

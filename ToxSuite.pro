@@ -1,4 +1,4 @@
-QMAKE_CFLAGS = -std=gnu99 -Wno-unused-parameter -Wno-unused-result -Wformat-security
+QMAKE_CFLAGS = -std=gnu99 -Wall -Wno-unused-parameter -Wno-unused-result -Wformat-security
 # -Wno-unused
 
 TEMPLATE = app

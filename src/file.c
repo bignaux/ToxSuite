@@ -16,8 +16,13 @@
 
 /*
  * some func are from https://github.com/irungentoo/toxcore/blob/master/testing/nTox.c
- *
+ * read http://www.cgsecurity.org/Articles/SecProg/Art5/
  */
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "file.h"
 #include "unused.h"
@@ -33,36 +38,47 @@ uint8_t numfilesenders;
 
 int printf_file(FILE* stream, const char *filename)
 {
-    FILE * file;
+    FILE * fp;
     size_t file_size;
     char *buffer;
     size_t szread;
-    int retcode = 0;
+    int retcode = EXIT_SUCCESS;
 
-    if(!access(filename, R_OK)) {
-        ydebug("Try to open %s : no read access.",filename);
-        return -1;
+    struct stat st;
+    int fd;
+
+    if ((fd = open (filename, O_WRONLY, 0)) < 0) {
+        yerr("Can't open %s\n", filename);
+        exit(EXIT_FAILURE);
     }
-    file = fopen(filename, "r");
-    if (!file) {
-        ydebug("Try to open %s : fopen error.",filename);
-        return -1;
+    if (fstat (fd, &st)) {
+        yerr("fstat error on %s!", filename);
+        exit(EXIT_FAILURE);
+    }
+    if (st.st_uid != getuid ()) {
+        yerr("%s not owner !", filename);
+        exit(EXIT_FAILURE);
+    }
+    if (! S_ISREG (st.st_mode)) {
+        yerr("%s not a normal file", filename);
+        exit(EXIT_FAILURE);
+    }
+    if ((fp = fdopen (fd, "w")) == NULL) {
+        yerr("Can't open");
+        exit(EXIT_FAILURE);
     }
 
-    fseek(file, 0L, SEEK_END);
-    file_size = ftell(file);
-    fseek(file, 0L, SEEK_SET);
-
+    file_size = st.st_size;
     buffer = malloc(file_size + 1);
-    szread = fread(buffer, sizeof(char), file_size, file);
-    fclose(file);
+    szread = fread(buffer, sizeof(char), st.st_size, fp);
+    fclose(fp);
     if (szread == file_size)
     {
-        buffer[file_size] = '\0';
+        buffer[st.st_size] = '\0';
         fprintf(stream, "%s", buffer);
-    } else retcode = -1;
+    } else retcode = EXIT_FAILURE;
     free(buffer);
-    return retcode;
+    exit(retcode);
 }
 
 void tox_file_chunk_request(Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, size_t length,
@@ -130,13 +146,10 @@ void file_request_accept(Tox *tox, uint32_t friend_number, uint32_t file_number,
 		return;
 	}
 
-	char msg[512];
-    sprintf(msg, "%u is sending us: %s of size %llu", friend_number, filename, (long long unsigned int)file_size);
-    yinfo("%s", msg);
+    yinfo("%u is sending us: %s of size %llu", friend_number, filename, (long long unsigned int)file_size);
 
 	if (tox_file_control(tox, friend_number, file_number, TOX_FILE_CONTROL_RESUME, 0)) {
-		sprintf(msg, "Accepted file transfer. (saving file as: %u.%u.bin)", friend_number, file_number);
-        yinfo("%s", msg);
+        yinfo("Accepted file transfer. (saving file as: %u.%u.bin)", friend_number, file_number);
 	} else
         yinfo("Could not accept file transfer.");
 }
@@ -144,11 +157,7 @@ void file_request_accept(Tox *tox, uint32_t friend_number, uint32_t file_number,
 void file_print_control(Tox *tox, uint32_t friend_number, uint32_t file_number, TOX_FILE_CONTROL control,
 			void *user_data)
 {
-	char msg[512] = { 0 };
-
-    sprintf(msg, "control %u received", control);
-    yinfo("%s", msg);
-
+    yinfo("control %u received", control);
 	if (control == TOX_FILE_CONTROL_CANCEL) {
 		unsigned int i;
 
@@ -157,31 +166,34 @@ void file_print_control(Tox *tox, uint32_t friend_number, uint32_t file_number, 
 			if (file_senders[i].file && file_senders[i].friendnum == friend_number && file_senders[i].filenumber == file_number) {
 				fclose(file_senders[i].file);
 				file_senders[i].file = 0;
-				char msg[512];
-                sprintf(msg, "%u file transfer: %u cancelled", file_senders[i].friendnum, file_senders[i].filenumber);
-                yinfo("%s", msg);
+                yinfo("%u file transfer: %u cancelled", file_senders[i].friendnum, file_senders[i].filenumber);
                 // TODO int unlink (const char *filename)
 			}
 		}
 	}
 }
 
+/* very poor design
+ * look toxcore/testing/tox_sync.c => add file queue for user.
+ */
 void write_file(Tox *tox, uint32_t friendnumber, uint32_t filenumber, uint64_t position, const uint8_t *data,
 		size_t length, void *user_data)
 {
-	if (length == 0) {
-		char msg[512];
-        sprintf(msg, "%u file transfer: %u completed", friendnumber, filenumber);
-        yinfo("%s", msg);
+    char filename[256];
+
+    if (length == 0) {
+        yinfo("%u file transfer: %u completed", friendnumber, filenumber);
 		return;
 	}
 
-	char filename[256];
 	sprintf(filename, "%u.%u.bin", friendnumber, filenumber);
 	FILE *pFile = fopen(filename, "r+b");
 
-	if (pFile == NULL)
+    if (!pFile)
 		pFile = fopen(filename, "wb");
+
+    if (!pFile)
+        return;
 
 	fseek(pFile, position, SEEK_SET);
 
@@ -190,3 +202,5 @@ void write_file(Tox *tox, uint32_t friendnumber, uint32_t filenumber, uint64_t p
 
 	fclose(pFile);
 }
+
+

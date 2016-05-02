@@ -1,3 +1,4 @@
+# dont provide trailing / on path
 declare -x SUIT_HOME="/home/genesis/suit"
 declare -x SUIT_PASSPHRASE="somethingintheway"
 declare -x SUIT_NAME="Anna"

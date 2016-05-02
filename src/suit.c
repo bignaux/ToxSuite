@@ -59,12 +59,12 @@ static struct toxNodes {
     uint16_t    port;
     const char *key;
 } nodes[] = {
-    { "144.76.60.215",   33445, "04119E835DF3E78BACF0F84235B300546AF8B936F035185E2A8E9E0A67C8924F" },
-    { "192.210.149.121", 33445, "F404ABAA1C99A9D37D61AB54898F56793E1DEF8BD46B1038B9D822E8460FAB67" },
-    { "195.154.119.113", 33445, "E398A69646B8CEACA9F0B84F553726C1C49270558C57DF5F3C368F05A7D71354" },
-    { "46.38.239.179",   33445, "F5A1A38EFB6BD3C2C8AF8B10D85F0F89E931704D349F1D0720C3C4059AF2440A" },
-    { "76.191.23.96",    33445, "93574A3FAB7D612FEA29FD8D67D3DD10DFD07A075A5D62E8AF3DD9F5D0932E11" },
-    { NULL, 0, NULL },
+{ "144.76.60.215",   33445, "04119E835DF3E78BACF0F84235B300546AF8B936F035185E2A8E9E0A67C8924F" },
+{ "192.210.149.121", 33445, "F404ABAA1C99A9D37D61AB54898F56793E1DEF8BD46B1038B9D822E8460FAB67" },
+{ "195.154.119.113", 33445, "E398A69646B8CEACA9F0B84F553726C1C49270558C57DF5F3C368F05A7D71354" },
+{ "46.38.239.179",   33445, "F5A1A38EFB6BD3C2C8AF8B10D85F0F89E931704D349F1D0720C3C4059AF2440A" },
+{ "76.191.23.96",    33445, "93574A3FAB7D612FEA29FD8D67D3DD10DFD07A075A5D62E8AF3DD9F5D0932E11" },
+{ NULL, 0, NULL },
 };
 
 static void bootstrap_DHT(Tox *m)
@@ -132,7 +132,7 @@ void redirect_output()
 {
     // these lines are to direct the stdout and stderr to log files we can access even when run as a daemon (after the possible help info is displayed.)
     //open up the files we want to use for out logs
-    int new_stderr, new_stdout;
+    uint32_t new_stderr, new_stdout;
     new_stderr = open("suit_error.log", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     new_stdout = open("suit_debug.log", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
@@ -173,12 +173,12 @@ int main(int argc, char **argv)
     /* Fork off the parent process */
     pid = fork();
     if (pid < 0) {
-            exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
     /* If we got a good PID, then
        we can exit the parent process. */
     if (pid > 0) {
-            exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
     }
 
     /* Change the file mode mask */
@@ -190,14 +190,18 @@ int main(int argc, char **argv)
     /* Create a new SID for the child process */
     sid = setsid();
     if (sid < 0) {
-            /* Log the failure */
-            exit(EXIT_FAILURE);
+        /* Log the failure */
+        exit(EXIT_FAILURE);
     }
 
     /* Change the current working directory */
+    if(access(home,  R_OK|W_OK|X_OK)) {
+        yerr("$SUIT_HOME is not accessible or have not properly access right.");
+        exit(EXIT_FAILURE);
+    }
     if ((chdir(home)) < 0) {
-            /* Log the failure */
-            exit(EXIT_FAILURE);
+        /* Log the failure */
+        exit(EXIT_FAILURE);
     }
 
     redirect_output();
@@ -218,22 +222,38 @@ int main(int argc, char **argv)
     //    load_json_profile(&si->tox, &options);
 
     if (!access(si->data_filename, R_OK|W_OK)) {
-        if (!load_profile(&si->tox, &options,si->data_filename, passphrase)) {
+        if (load_profile(&si->tox, &options,si->data_filename, passphrase)) {
             yinfo("Failed to load data from disk");
             return -1;
         }
     } else {
         yinfo("Creating a new profile");
         si->tox = tox_new(&options, &err);
-        tox_self_set_name(si->tox, (uint8_t *)name, strlen(name), NULL);
-        tox_self_set_status_message(si->tox, (uint8_t *)status_msg, strlen(status_msg), NULL);
         toxdata_set_shouldSaveConfig(true);
+        if (err != TOX_ERR_NEW_OK) {
+            ywarn("Error at tox_new, error: %d", err);
+            return -1;
+        }
     }
 
-    if (err != TOX_ERR_NEW_OK) {
-        ywarn("Error at tox_new, error: %d", err);
-        return -1;
+    /* set to user config
+     *
+     */
+    size_t size = strlen(name);
+    if( size > TOX_MAX_NAME_LENGTH)
+    {
+        size = TOX_MAX_NAME_LENGTH;
+        ywarn("$SUIT_NAME is too long,will be truncated.");
     }
+    tox_self_set_name(si->tox, (uint8_t *)name, size, NULL);
+
+    size = strlen(status_msg);
+    if (size > TOX_MAX_STATUS_MESSAGE_LENGTH)
+    {
+        size = TOX_MAX_STATUS_MESSAGE_LENGTH;
+        ywarn("$SUIT_STATUSMSG is too long,will be truncated");
+    }
+    tox_self_set_status_message(si->tox, (uint8_t *)status_msg, size, NULL);
 
     /* Get connection.
      *
@@ -264,11 +284,11 @@ int main(int argc, char **argv)
     struct timespec tsav = { 0, 0 };
     struct timespec tsfriend = { 0, 0 };
     struct timespec tscalltest = { 0, 0 };
-//    struct timespec tssleep = { 0, 0 };
+    //    struct timespec tssleep = { 0, 0 };
     struct timespec tselasped = { 0, 0 };
-//    struct timespec tsantispam = { 0, 0 };
+    //    struct timespec tsantispam = { 0, 0 };
 
-//    memcpy(&tsprev, &tscalltest, sizeof(struct timespec));
+    //    memcpy(&tsprev, &tscalltest, sizeof(struct timespec));
 
     /* polling loop
      * by order of priority (max priority at top list)
@@ -302,12 +322,12 @@ int main(int argc, char **argv)
         }
 
         /* antispam */
-//        if (nanosec_timeout(&tsantispam, &tpnow, 10 * NSEC_PER_SEC)) {
-//            basic_antispam(si-tox, FRIEND_PURGE_INTERVAL, timespec_to_ns(&tpnow), &si->friends_info);
-//            memcpy(&tsantispam, &tpnow, sizeof(struct timespec));
-//            toxdata_set_shouldSaveConfig(true);
-//            continue;
-//        }
+        //        if (nanosec_timeout(&tsantispam, &tpnow, 10 * NSEC_PER_SEC)) {
+        //            basic_antispam(si-tox, FRIEND_PURGE_INTERVAL, timespec_to_ns(&tpnow), &si->friends_info);
+        //            memcpy(&tsantispam, &tpnow, sizeof(struct timespec));
+        //            toxdata_set_shouldSaveConfig(true);
+        //            continue;
+        //        }
 
         if (nanosec_timeout(&tsfriend, &tpnow, FRIEND_PURGE_INTERVAL * NSEC_PER_SEC)) {
             friend_cleanup(si->tox, FRIEND_PURGE_INTERVAL, timespec_to_ns(&tpnow), &si->friends_info);

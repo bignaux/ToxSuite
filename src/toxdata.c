@@ -47,7 +47,7 @@ int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filena
     uint8_t *save_data = NULL;
 
     if (!file)
-        return false;
+        return -1;
 
     stat(data_filename, &sb);
     char * date = strdup(ctime((time_t*)&sb.st_mtim.tv_sec));
@@ -57,16 +57,21 @@ int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filena
 
     read_data = malloc(file_size * sizeof(uint8_t));
     szread = fread(read_data, sizeof(uint8_t), file_size, file);
+    if (szread != file_size) {
+        ferror(file);
+        yerr("An error occurred reading %s.",data_filename);
+        fclose(file);
+        free(read_data);
+        return -1;
+    }
     fclose(file);
-    if (szread != file_size || ferror(file))
-        ywarn("An error occurred reading %s.",data_filename);
 
     encrypted = tox_is_data_encrypted(read_data);
     if (encrypted) {
         if (!passphrase) {
             ywarn("Encrypted profile, you must supply the passphrase.");
             free(read_data);
-            return false;
+            return -1;
         }
         save_data = malloc(file_size * sizeof(uint8_t));
         tox_pass_decrypt(read_data, file_size, (uint8_t*)passphrase, strlen(passphrase),
@@ -76,7 +81,7 @@ int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filena
         if (decrypt_error != TOX_ERR_DECRYPTION_OK) {
             ywarn("tox_pass_decrypt() error %d",decrypt_error);
             free(save_data);
-            return decrypt_error;
+            return -1;
         }
     }
     else save_data = read_data;
@@ -90,10 +95,14 @@ int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filena
     *tox = tox_new(options, &err);
     free(save_data);
 
+    if (err != TOX_ERR_NEW_OK)
+    {
+        free(date);
+        return -1;
+    }
     yinfo("%s %s loaded, last modification : %s",encrypted ? "Encrypted" : "clear", data_filename, date);
     free(date);
-
-    return err == TOX_ERR_NEW_OK;
+    return 0;
 }
 
 int save_profile(Tox *tox, const char *filename, const char *passphrase)
