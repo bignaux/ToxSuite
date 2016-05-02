@@ -12,9 +12,9 @@ addons:
       name: "bignaux/ToxSuite"
       description: "Build submitted via Travis CI"
     notification_email: ronan@aimao.org
-    build_command_prepend: "./configure; make clean"
+    build_command_prepend: "qmake -config suit"
     build_command:   "make -j 4"
-    branch_pattern: coverity_scan
+    branch_pattern: master
 
 addons:
   apt:

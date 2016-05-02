@@ -34,7 +34,7 @@ uint8_t numfilesenders;
 int printf_file(FILE* stream, const char *filename)
 {
     FILE * file;
-    int64_t file_size;
+    size_t file_size;
     char *buffer;
     size_t szread;
     int retcode = 0;
@@ -56,7 +56,7 @@ int printf_file(FILE* stream, const char *filename)
     buffer = malloc(file_size + 1);
     szread = fread(buffer, sizeof(char), file_size, file);
     fclose(file);
-    if (szread == (unsigned)file_size)
+    if (szread == file_size)
     {
         buffer[file_size] = '\0';
         fprintf(stream, "%s", buffer);
