@@ -1,7 +1,7 @@
 # ToxSuite
 __NOT READY FOR PRODUCTION__
 
-ToxSuite is a C helper library library on top of [Toxcore] to develop services and tools for Tox.  
+ToxSuite is a C helper library on top of [Toxcore] to develop services and tools for Tox.  
 See [tox.chat](https://tox.chat) for information about Tox in general.   
 
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/8730/badge.svg)](https://scan.coverity.com/projects/bignaux-toxsuite)
@@ -60,7 +60,7 @@ an example to how to set it properly is provided in scripts/suit.sh .
 $ source suit.sh
 $ ./suit
 ```
-Suit will go background as it provides a minimal daemon feature. Tox profile is read from SUIT_HOME directory, and suit will write its logs there.
+Suit will go background as it provides a minimal daemon feature. Toxcore datas file is read from SUIT_HOME directory, and Suit will write its logs there.
 
 # Toxdatatool
 
