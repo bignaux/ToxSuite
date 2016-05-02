@@ -10,7 +10,7 @@ addons:
   coverity_scan:
     project:
       name: "bignaux/ToxSuite"
-      description: "Build submitted via Travis CI"
+      description: "A C library to develop services and tools for Tox."
     notification_email: ronan@aimao.org
     build_command_prepend: "qmake -config suit"
     build_command:   "make -j 4"

@@ -98,4 +98,8 @@ toxdatatool {
     src/misc.c
 }
 
-#INSTALLS += suit
+#toxdatatool.path = /usr/bin
+#suit.path = /usr/bin/
+#INSTALLS += suit toxdatatool
+
+#QMAKE_EXTRA_TARGETS += suit toxdatatool
