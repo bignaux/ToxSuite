@@ -26,6 +26,10 @@
 #include "ylog/ylog.h"
 #include "jsmn/jsmn.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
@@ -124,19 +128,79 @@ void callbacks_init(struct suit_info *si)
     }
 }
 
+void redirect_output()
+{
+    // these lines are to direct the stdout and stderr to log files we can access even when run as a daemon (after the possible help info is displayed.)
+    //open up the files we want to use for out logs
+    int new_stderr, new_stdout;
+    new_stderr = open("suit_error.log", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    new_stdout = open("suit_debug.log", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+    //truncate those files to clear the old data from long since past.
+    if (0 != ftruncate(new_stderr, 0))
+    {
+        perror("could not truncate stderr log");
+    }
+    if (0 != ftruncate(new_stdout, 0))
+    {
+        perror("could not truncate stdout log");
+    }
+
+    //duplicate the new file descriptors and assign the file descriptors 1 and 2 (stdout and stderr) to the duplicates
+    dup2(new_stderr, STDERR_FILENO);
+    dup2(new_stdout, STDOUT_FILENO);
+
+    //now that they are duplicated we can close them and let the overhead c stuff worry about closing stdout and stderr later.
+    close(new_stderr);
+    close(new_stdout);
+    close(STDIN_FILENO);
+}
 
 int main(int argc, char **argv)
 {
-    ylog_set_level(YLOG_DEBUG, getenv("YLOG_LEVEL"));
+    const char *passphrase = getenv("SUIT_PASSPHRASE");
+    const char *name = getenv("SUIT_NAME");
+    const char *status_msg = getenv("SUIT_STATUSMSG");
+    const char *home = getenv("SUIT_HOME");
+
     signal(SIGINT, handle_signal);
 
     size_t friend_list_size;
 
-    /* defaults parameters */
-    const char *passphrase = "somethingintheway" ;
-    const char *name = "Suit";
-    const char *status_msg = "A Tox service bot based on ToxSuite.";
+    /* Our process ID and Session ID */
+    pid_t pid, sid;
 
+    /* Fork off the parent process */
+    pid = fork();
+    if (pid < 0) {
+            exit(EXIT_FAILURE);
+    }
+    /* If we got a good PID, then
+       we can exit the parent process. */
+    if (pid > 0) {
+            exit(EXIT_SUCCESS);
+    }
+
+    /* Change the file mode mask */
+    umask(0);
+
+    /* Open any logs here */
+    ylog_set_level(YLOG_DEBUG, getenv("YLOG_LEVEL"));
+
+    /* Create a new SID for the child process */
+    sid = setsid();
+    if (sid < 0) {
+            /* Log the failure */
+            exit(EXIT_FAILURE);
+    }
+
+    /* Change the current working directory */
+    if ((chdir(home)) < 0) {
+            /* Log the failure */
+            exit(EXIT_FAILURE);
+    }
+
+    redirect_output();
 
     /* Load datas
      *
@@ -144,7 +208,8 @@ int main(int argc, char **argv)
 
     struct suit_info *si = NULL;
     si = suit_info_new(si);
-    yinfo("ToxSuite v%s",si->version);
+    yinfo("ToxSuite version %s",si->version);
+    ydebug("%s",passphrase);
 
     TOX_ERR_NEW err = TOX_ERR_NEW_OK;
     struct Tox_Options options;

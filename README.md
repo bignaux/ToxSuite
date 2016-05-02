@@ -1,7 +1,7 @@
 # ToxSuite
 __NOT READY FOR PRODUCTION__
 
-ToxSuite is a C library to develop services and tools for Tox.  
+ToxSuite is a C helper library library on top of [Toxcore] to develop services and tools for Tox.  
 See [tox.chat](https://tox.chat) for information about Tox in general.   
 
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/8730/badge.svg)](https://scan.coverity.com/projects/bignaux-toxsuite)
@@ -43,8 +43,24 @@ $ make
 
 # Suit
 
-Suit bot on Tox. No configuration file yet, configure it hacking the source code.
+Suit bot on Tox. No configuration file yet.
 
+## Usage
+
+As a quick hack, Suit uses getenv() to check for the following environment variables :
+
+* SUIT_HOME
+* SUIT_PASSPHRASE
+* SUIT_NAME
+* SUIT_STATUSMSG
+
+an example to how to set it properly is provided in scripts/suit.sh . 
+
+```sh
+$ source suit.sh
+$ ./suit
+```
+Suit will go background as it provides a minimal daemon feature. Tox profile is read from SUIT_HOME directory, and suit will write its logs there.
 
 # Toxdatatool
 
@@ -67,7 +83,7 @@ Help options:
 -?, --help                        Show this help message
 --usage                       Display brief usage message
 ```
-
+   [toxcore]: <https://github.com/irungentoo/toxcore>
    [fopencookie]: <http://man7.org/linux/man-pages/man3/fopencookie.3.html>
    [libsodium]: <https://github.com/jedisct1/libsodium>
    [libsndfile]: <http://www.mega-nerd.com/libsndfile>

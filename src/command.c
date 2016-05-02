@@ -177,7 +177,7 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
 			 */
 			break;
         case 'i':
-            fprintf(stream,"ToxSuite v%s\n",si->version);
+            fprintf(stream,"ToxSuite version %s\n",si->version);
             client_info_print(stream, &si->own_info);
 			break;
 
@@ -212,7 +212,7 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
 
 		case 'p':;
 			/* very long file to test fopencookie */
-			FILE * file = fopen("pa.md", "r");
+            FILE * file = fopen("README.md", "r");
             int unused __attribute__((unused));
 
 			fseek(file, 0L, SEEK_END);
