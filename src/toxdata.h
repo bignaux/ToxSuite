@@ -5,7 +5,6 @@
 #include "friend.h"
 #include "list.h"
 
-bool file_exists(const char *filename);
 bool toxdata_get_shouldSaveConfig(void);
 void toxdata_set_shouldSaveConfig(bool saved);
 

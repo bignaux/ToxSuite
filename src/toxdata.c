@@ -16,7 +16,6 @@
 
 #include "toxdata.h"
 #include "ylog/ylog.h"
-#include "unused.h"
 
 #include <time.h>
 
@@ -36,18 +35,16 @@ void toxdata_set_shouldSaveConfig(bool saved)
     shouldSaveConfig = saved;
 }
 
-bool file_exists(const char *filename)
-{
-    return access(filename, 0) != -1;
-}
-
 int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filename, const char *passphrase)
 {
     TOX_ERR_DECRYPTION decrypt_error;
     FILE *file = fopen(data_filename, "rb");
     bool encrypted;
     struct stat sb;
-//    size_t UNUSED(readed);
+    size_t szread;
+
+    uint8_t *read_data = NULL;
+    uint8_t *save_data = NULL;
 
     if (!file)
         return false;
@@ -56,16 +53,13 @@ int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filena
     char * date = strdup(ctime((time_t*)&sb.st_mtim.tv_sec));
     date[strlen(date) -1] = '\0';
 
-    long file_size = sb.st_size;
+    size_t file_size = sb.st_size;
 
-    uint8_t *read_data = malloc(file_size * sizeof(uint8_t));
-    uint8_t *save_data = NULL;
-    fread(read_data, sizeof(uint8_t), file_size, file);
-
-    if (ferror(file))
-        ywarn("An error occurred reading %s.",data_filename);
-
+    read_data = malloc(file_size * sizeof(uint8_t));
+    szread = fread(read_data, sizeof(uint8_t), file_size, file);
     fclose(file);
+    if (szread != file_size || ferror(file))
+        ywarn("An error occurred reading %s.",data_filename);
 
     encrypted = tox_is_data_encrypted(read_data);
     if (encrypted) {
@@ -96,8 +90,8 @@ int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filena
     *tox = tox_new(options, &err);
     free(save_data);
 
-
     yinfo("%s %s loaded, last modification : %s",encrypted ? "Encrypted" : "clear", data_filename, date);
+    free(date);
 
     return err == TOX_ERR_NEW_OK;
 }

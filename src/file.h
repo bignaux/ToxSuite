@@ -17,6 +17,8 @@
 
 #include "ylog/ylog.h"
 
+int printf_file(FILE* stream, const char *filename);
+
 void file_request_accept(Tox *tox, uint32_t friend_number, uint32_t file_number, uint32_t type, uint64_t file_size,
 			 const uint8_t *filename, size_t filename_length, void *user_data);
 void file_print_control(Tox *tox, uint32_t friend_number, uint32_t file_number, TOX_FILE_CONTROL control,

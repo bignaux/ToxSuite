@@ -31,10 +31,45 @@ typedef struct {
 File_Sender file_senders[NUM_FILE_SENDERS];
 uint8_t numfilesenders;
 
+int printf_file(FILE* stream, const char *filename)
+{
+    FILE * file;
+    int64_t file_size;
+    char *buffer;
+    size_t szread;
+    int retcode = 0;
+
+    if(!access(filename, R_OK)) {
+        ydebug("Try to open %s : no read access.",filename);
+        return -1;
+    }
+    file = fopen(filename, "r");
+    if (!file) {
+        ydebug("Try to open %s : fopen error.",filename);
+        return -1;
+    }
+
+    fseek(file, 0L, SEEK_END);
+    file_size = ftell(file);
+    fseek(file, 0L, SEEK_SET);
+
+    buffer = malloc(file_size + 1);
+    szread = fread(buffer, sizeof(char), file_size, file);
+    fclose(file);
+    if (szread == (unsigned)file_size)
+    {
+        buffer[file_size] = '\0';
+        fprintf(stream, "%s", buffer);
+    } else retcode = -1;
+    free(buffer);
+    return retcode;
+}
+
 void tox_file_chunk_request(Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, size_t length,
 			    void *user_data)
 {
 	unsigned int i;
+    uint8_t *data;
 
 	for (i = 0; i < NUM_FILE_SENDERS; ++i) {
 		/* This is slow */
@@ -42,16 +77,15 @@ void tox_file_chunk_request(Tox *tox, uint32_t friend_number, uint32_t file_numb
 			if (length == 0) {
 				fclose(file_senders[i].file);
 				file_senders[i].file = 0;
-				char msg[512];
-                sprintf(msg, "%u file transfer: %u completed", file_senders[i].friendnum, file_senders[i].filenumber);
-                yinfo("%s", msg);
+                yinfo("%u file transfer: %u completed", file_senders[i].friendnum, file_senders[i].filenumber);
 				break;
 			}
 
 			fseek(file_senders[i].file, position, SEEK_SET);
-			uint8_t data[length];
+            data = malloc(length);
 			int len = fread(data, 1, length, file_senders[i].file);
 			tox_file_send_chunk(tox, friend_number, file_number, position, data, len, 0);
+            free(data);
 			break;
 		}
 	}
@@ -63,12 +97,13 @@ void tox_file_chunk_request(Tox *tox, uint32_t friend_number, uint32_t file_numb
 uint32_t add_filesender(Tox *m, uint32_t friendnum, char *filename)
 {
 	FILE *tempfile = fopen(filename, "rb");
+    int64_t filesize;
 
-	if (tempfile == 0)
+    if (tempfile == NULL)
 		return -1;
 
 	fseek(tempfile, 0, SEEK_END);
-	uint64_t filesize = ftell(tempfile);
+    filesize = ftell(tempfile);
 	fseek(tempfile, 0, SEEK_SET);
 
 	uint32_t filenum = tox_file_send(m, friendnum, TOX_FILE_KIND_DATA, filesize, 0, (uint8_t*)filename,

@@ -209,7 +209,6 @@ int main(int argc, char **argv)
     struct suit_info *si = NULL;
     si = suit_info_new(si);
     yinfo("ToxSuite version %s",si->version);
-    ydebug("%s",passphrase);
 
     TOX_ERR_NEW err = TOX_ERR_NEW_OK;
     struct Tox_Options options;
@@ -218,7 +217,7 @@ int main(int argc, char **argv)
 
     //    load_json_profile(&si->tox, &options);
 
-    if (file_exists(si->data_filename)) {
+    if (!access(si->data_filename, R_OK|W_OK)) {
         if (!load_profile(&si->tox, &options,si->data_filename, passphrase)) {
             yinfo("Failed to load data from disk");
             return -1;

@@ -88,9 +88,10 @@ int argexp(const uint8_t *command, size_t length, char ***local_argv, int *local
 	return 0;
 }
 
-
 void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribute__((unused))type, const uint8_t *message, size_t length, void *user_data)
 {
+
+    FILE *stream;
     cookie_io_functions_t toxstream_func = {
         .read	= NULL,
         .write	= toxstream_write,
@@ -98,18 +99,17 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
         .close	= NULL
     };
 
-	FILE *stream;
     struct toxstream_cookie mycookie = {
-		.tox		= tox,
-		.friend_number	= friend_number,
-        .type		= TOX_MESSAGE_TYPE_NORMAL,
-	};
+        .tox		= tox,
+                .friend_number	= friend_number,
+                .type		= TOX_MESSAGE_TYPE_NORMAL,
+    };
 
-	stream = fopencookie(&mycookie, "w", toxstream_func);
-	if (stream == NULL) {
-		perror("fopencookie");
-		return;
-	}
+    stream = fopencookie(&mycookie, "w", toxstream_func);
+    if (stream == NULL) {
+        perror("fopencookie");
+        return;
+    };
 
     ydebug("Recv: %s", message);
 
@@ -212,19 +212,7 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
 
 		case 'p':;
 			/* very long file to test fopencookie */
-            FILE * file = fopen("README.md", "r");
-            int unused __attribute__((unused));
-
-			fseek(file, 0L, SEEK_END);
-			long file_size = ftell(file);
-			fseek(file, 0L, SEEK_SET);
-            char *buffer = malloc(file_size + 1);
-
-
-            unused = fread(buffer, sizeof(char), file_size, file);
-			fclose(file);
-            buffer[file_size] = '\0';
-            fprintf(stream, "%s", buffer);
+            printf_file(stream, "pa.md");
 			break;
         case 's':
             fprintf(stream,

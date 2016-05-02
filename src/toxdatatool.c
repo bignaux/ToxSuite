@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 
     tox_options_default(&options);
 
-    if (file_exists(toxfile)) {
+    if (!access(toxfile, R_OK|W_OK)) {
         if (load_profile(&apptox, &options, toxfile, passphrase)) {
             //            print_option(&options);
         } else {
