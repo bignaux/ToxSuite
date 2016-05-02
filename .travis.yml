@@ -1,5 +1,21 @@
 language: c
 
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "fFAASKGjVafxd9kcOTgQP+TTa65+LR4fgMRxCmkmqS4RrPs3m7bNS6kZfFHcM4DG8Ud9d0Djvlxv7kuWpAoaIsEzugSqKiI9JEP8CxQasS++pH+afU2zud6NSWgE812LplTM3jMH4r5A8t7n7Oluy5DYOH3RgDUvNQ0MQWdIa1Ug6G051QM6XT5h9QmUWjJLhQVbggLoqlsIQrvzQALFpTwiwZi2vtTQEPnAiHhJQ/nABZz7WNIBBytFMUfJS3WHdQ5uV1OjpdWkjznM0SZ061UBlMVhdMddjyDUEXn7d9Z7ojDVvDLZK2pchlXuadEr6Qn6SIMjD3oVNghxf4Tefn7REUVou/frEtN/CQjAxdhOPs1Y+ATXUQ5AiHanEPJFTPWOoV4uRjVm1Jn7ESemYcTHBgmj4JsC45itr1J5JhEgtWb4lXpDhwK4kx3A3BsORB9DLpvl1mWRD7AOzhGHKO48m28Je7BZ5i5EVQrqWlZQ+CCMl9C+LbRTGRZv2xNFWmoW5hNBJbvGsEPbprReJxYGBUxLYrouAqJ/S/iLEvgqtI7THyx7kJFsrrb6FmGE+t9BCgLMUiuPEoSgz6WvkvZQekf44pweSlLYxvoZuvyUAWNvoQTin+enRu7uTAr4ag9IhvsbdB5NZFSP+qrPSECCMWDV3IYJ1zA06absdDs="
+
+addons:
+  coverity_scan:
+    project:
+      name: "bignaux/ToxSuite"
+      description: "Build submitted via Travis CI"
+    notification_email: ronan@aimao.org
+    build_command_prepend: "./configure; make clean"
+    build_command:   "make -j 4"
+    branch_pattern: coverity_scan
+
 addons:
   apt:
     sources:
