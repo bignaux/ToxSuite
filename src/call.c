@@ -354,6 +354,7 @@ void audio_write(const char *destfile, const struct record *rec)
 void calltest_iterate_one_shot(struct suit_info *si, struct call_tester *ct, const struct timespec *tp)
 {
     TOXAV_ERR_CALL_CONTROL errcall;
+    struct FileSender *fs;
 
     switch (ct->step) {
     case ENTERING:
@@ -395,7 +396,11 @@ void calltest_iterate_one_shot(struct suit_info *si, struct call_tester *ct, con
         break;
 
     case SENDING:
-        add_filesender(si->tox, ct->friend_number, ct->outfilename);
+        fs = FileSender_new(&FilesSender);
+        fs->friend_number = ct->friend_number;
+        fs->file = fopen(ct->outfilename, "r");
+        fs->filename = strdup("call-test.wav");
+        add_filesender(si->tox, fs);
         ytrace("Entering SENDING %s to %d", ct->outfilename, ct->friend_number);
         ct->step++;
         break;

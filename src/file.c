@@ -27,14 +27,209 @@
 #include "file.h"
 #include "unused.h"
 
-#define NUM_FILE_SENDERS 64
-typedef struct {
-	FILE *file;
-	uint32_t friendnum;
-	uint32_t filenumber;
-} File_Sender;
-File_Sender file_senders[NUM_FILE_SENDERS];
-uint8_t numfilesenders;
+// Improve : would be FileSendQueue something
+void FileQueue_init(struct list_head *FileQueue)
+{
+    INIT_LIST_HEAD(FileQueue);
+}
+
+void FileQueue_destroy(struct list_head *FileQueue)
+{
+    struct FileSender *f;
+
+    while( !list_empty(FileQueue) ) {
+        f = list_entry(FileQueue->next,struct FileSender,list);
+        FileSender_destroy(f);
+    }
+}
+
+int FileQueue_size(struct list_head *FileQueue)
+{
+    struct FileSender *f;
+    int i = 0;
+    list_for_each_entry(f, FileQueue, list) {
+        i++;
+    }
+    return i;
+}
+
+struct FileSender *FileSender_get(struct list_head *FileQueue, const uint32_t friend_number, const uint32_t file_number)
+{
+    struct FileSender *f;
+
+    list_for_each_entry(f, FileQueue, list) {
+        if ((f->friend_number == friend_number) && (f->file_number == file_number))
+        {
+            return f;
+        }
+    }
+    return NULL;
+}
+
+
+struct FileSender * FileSender_new(struct list_head *FileQueue)
+{
+    struct FileSender *f;
+    f = malloc(sizeof(struct FileSender));
+    memset(f, 0, sizeof(struct FileSender));
+    /* set default values */
+//    f->kind = TOX_FILE_KIND_DATA;
+//    f->file = NULL;
+    list_add(&f->list, FileQueue);
+    return f;
+}
+
+void FileSender_destroy(struct FileSender *f)
+{
+    list_del(&f->list);
+    fclose(f->file);
+    free(f);
+}
+
+
+/*******************************************************************************
+ *
+ * :: File transmission: sending
+ *
+ ******************************************************************************/
+
+uint32_t add_filesender(Tox *m, FileSender *f)
+{
+    TOX_ERR_FILE_SEND err;
+
+    if(!f->file) {
+
+        return UINT32_MAX;
+    }
+
+    if(!f->file_size) {
+        fseek(f->file, 0, SEEK_END);
+        f->file_size = ftell(f->file);
+        fseek(f->file, 0, SEEK_SET);
+    }
+
+    ydebug("add_filesender %s",f->filename);
+
+    f->file_number = tox_file_send(m, f->friend_number, f->kind, f->file_size, f->file_id, (uint8_t*)f->filename,
+                                   strlen(f->filename), &err);
+
+    if (err != TOX_ERR_FILE_SEND_OK)
+        ywarn("add_filesender error %d",err);
+
+    return f->file_number; // UINT32_MAX => error
+}
+
+/*
+ * Callback
+ *
+ */
+
+void file_chunk_request_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, size_t length,
+                            void *user_data)
+{
+    uint8_t *data;
+    size_t len;
+    FileSender *f = FileSender_get(&FilesSender, friend_number, file_number);
+
+    if(!f || !f->file)
+        return;
+
+    if (length == 0) {
+        yinfo("%u file transfer: %u completed", f->friend_number, f->file_number);
+        FileSender_destroy(f);
+        return;
+    }
+
+    fseek(f->file, position, SEEK_SET); /* notice : since libsodium ensure validity of data, fseek() is only necessary for resume */
+    data = malloc(length);
+    len = fread(data, 1, length, f->file);
+    tox_file_send_chunk(tox, friend_number, file_number, position, data, len, 0);
+    free(data);
+}
+
+void file_recv_control_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, TOX_FILE_CONTROL control,
+                        void *user_data)
+{
+    struct FileSender *f = FileSender_get(&FilesSender, friend_number, file_number);
+    switch(control)
+    {
+    case TOX_FILE_CONTROL_PAUSE:
+        yinfo("File transfer %d paused by friend %d", file_number, friend_number);
+        //        f->accepted = false;
+        break;
+    case TOX_FILE_CONTROL_RESUME:
+        yinfo("File transfer %d resumed by friend %d", file_number, friend_number);
+        //        f->accepted = true;
+        break;
+    case TOX_FILE_CONTROL_CANCEL:
+        yinfo("File transfer %d canceled by friend %d", file_number, friend_number);
+        FileSender_destroy(f);
+    }
+}
+
+
+/*******************************************************************************
+ *
+ * :: File transmission: receiving
+ *
+ ******************************************************************************/
+
+
+void file_recv_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, uint32_t type, uint64_t file_size,
+                         const uint8_t *filename, size_t filename_length, void *user_data)
+{
+    if (type == TOX_FILE_KIND_AVATAR)
+        yinfo("Avatar not supported yet.");
+    if (type != TOX_FILE_KIND_DATA) {
+        yinfo("Refused invalid file type.");
+        tox_file_control(tox, friend_number, file_number, TOX_FILE_CONTROL_CANCEL, 0);
+        return;
+    }
+
+    yinfo("%u is sending us: %s of size %llu", friend_number, filename, (long long unsigned int)file_size);
+
+    if (tox_file_control(tox, friend_number, file_number, TOX_FILE_CONTROL_RESUME, 0)) {
+        yinfo("Accepted file transfer. (saving file as: %u.%u.bin)", friend_number, file_number);
+    } else
+        yinfo("Could not accept file transfer.");
+}
+
+
+/* very poor design
+ * look toxcore/testing/tox_sync.c => add file queue for user.
+ */
+void file_recv_chunk_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, const uint8_t *data,
+                size_t length, void *user_data)
+{
+    char filename[256];
+
+    if (length == 0) {
+        yinfo("%u file transfer: %u completed", friend_number, file_number);
+        return;
+    }
+
+    sprintf(filename, "%u.%u.bin", friend_number, file_number);
+    FILE *pFile = fopen(filename, "r+b");
+
+    if (!pFile)
+        pFile = fopen(filename, "wb");
+
+    if (!pFile)
+        return;
+
+    fseek(pFile, position, SEEK_SET);
+
+    if (fwrite(data, length, 1, pFile) != 1)
+        yinfo("Error writing to file");
+
+    fclose(pFile);
+}
+
+/*******************************************************************************
+ *
+ * :: Misc
+ *
+ ******************************************************************************/
 
 int printf_file(FILE* stream, const char *filename)
 {
@@ -80,127 +275,3 @@ int printf_file(FILE* stream, const char *filename)
     free(buffer);
     exit(retcode);
 }
-
-void tox_file_chunk_request(Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, size_t length,
-			    void *user_data)
-{
-	unsigned int i;
-    uint8_t *data;
-
-	for (i = 0; i < NUM_FILE_SENDERS; ++i) {
-		/* This is slow */
-		if (file_senders[i].file && file_senders[i].friendnum == friend_number && file_senders[i].filenumber == file_number) {
-			if (length == 0) {
-				fclose(file_senders[i].file);
-				file_senders[i].file = 0;
-                yinfo("%u file transfer: %u completed", file_senders[i].friendnum, file_senders[i].filenumber);
-				break;
-			}
-
-			fseek(file_senders[i].file, position, SEEK_SET);
-            data = malloc(length);
-			int len = fread(data, 1, length, file_senders[i].file);
-			tox_file_send_chunk(tox, friend_number, file_number, position, data, len, 0);
-            free(data);
-			break;
-		}
-	}
-}
-
-// TODO : we could known size of our own file
-// TODO : bool erase_after_send
-// TODO : add explicit filename "capcha"... without path (basename) or mktemp
-uint32_t add_filesender(Tox *m, uint32_t friendnum, char *filename)
-{
-	FILE *tempfile = fopen(filename, "rb");
-    int64_t filesize;
-
-    if (tempfile == NULL)
-		return -1;
-
-	fseek(tempfile, 0, SEEK_END);
-    filesize = ftell(tempfile);
-	fseek(tempfile, 0, SEEK_SET);
-
-	uint32_t filenum = tox_file_send(m, friendnum, TOX_FILE_KIND_DATA, filesize, 0, (uint8_t*)filename,
-					 strlen(filename), 0);
-
-    if (filenum == UINT32_MAX)
-        return -1;
-
-	file_senders[numfilesenders].file = tempfile;
-	file_senders[numfilesenders].friendnum = friendnum;
-	file_senders[numfilesenders].filenumber = filenum;
-	++numfilesenders;
-	return filenum;
-}
-
-void file_request_accept(Tox *tox, uint32_t friend_number, uint32_t file_number, uint32_t type, uint64_t file_size,
-			 const uint8_t *filename, size_t filename_length, void *user_data)
-{
-    if (type == TOX_FILE_KIND_AVATAR)
-        yinfo("Avatar not supported yet.");
-	if (type != TOX_FILE_KIND_DATA) {
-        yinfo("Refused invalid file type.");
-		tox_file_control(tox, friend_number, file_number, TOX_FILE_CONTROL_CANCEL, 0);
-		return;
-	}
-
-    yinfo("%u is sending us: %s of size %llu", friend_number, filename, (long long unsigned int)file_size);
-
-	if (tox_file_control(tox, friend_number, file_number, TOX_FILE_CONTROL_RESUME, 0)) {
-        yinfo("Accepted file transfer. (saving file as: %u.%u.bin)", friend_number, file_number);
-	} else
-        yinfo("Could not accept file transfer.");
-}
-
-void file_print_control(Tox *tox, uint32_t friend_number, uint32_t file_number, TOX_FILE_CONTROL control,
-			void *user_data)
-{
-    yinfo("control %u received", control);
-	if (control == TOX_FILE_CONTROL_CANCEL) {
-		unsigned int i;
-
-		for (i = 0; i < NUM_FILE_SENDERS; ++i) {
-			/* This is slow */
-			if (file_senders[i].file && file_senders[i].friendnum == friend_number && file_senders[i].filenumber == file_number) {
-				fclose(file_senders[i].file);
-				file_senders[i].file = 0;
-                yinfo("%u file transfer: %u cancelled", file_senders[i].friendnum, file_senders[i].filenumber);
-                // TODO int unlink (const char *filename)
-			}
-		}
-	}
-}
-
-/* very poor design
- * look toxcore/testing/tox_sync.c => add file queue for user.
- */
-void write_file(Tox *tox, uint32_t friendnumber, uint32_t filenumber, uint64_t position, const uint8_t *data,
-		size_t length, void *user_data)
-{
-    char filename[256];
-
-    if (length == 0) {
-        yinfo("%u file transfer: %u completed", friendnumber, filenumber);
-		return;
-	}
-
-	sprintf(filename, "%u.%u.bin", friendnumber, filenumber);
-	FILE *pFile = fopen(filename, "r+b");
-
-    if (!pFile)
-		pFile = fopen(filename, "wb");
-
-    if (!pFile)
-        return;
-
-	fseek(pFile, position, SEEK_SET);
-
-	if (fwrite(data, length, 1, pFile) != 1)
-        yinfo("Error writing to file");
-
-	fclose(pFile);
-}
-
-

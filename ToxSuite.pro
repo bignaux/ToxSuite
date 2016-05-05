@@ -61,7 +61,12 @@ suit {
         src/ylog/ylog.h \
         src/unused.h \
         src/timespec.h \
-        src/misc.h
+        src/misc.h \
+        src/callbacks.h\
+        src/conf.h\
+        src/fileop.h\
+        src/filesend.h\
+
     SOURCES += \
         src/call.c \
         src/command.c \
@@ -72,7 +77,11 @@ suit {
         src/toxdata.c \
         src/ylog/ylog.c \
         src/timespec.c \
-        src/misc.c
+        src/misc.c \
+        src/conf.c \
+        src/fileop.c \
+        src/filesend.c \
+        src/callbacks.c \
 
     unix: PKGCONFIG += sndfile
     unix: PKGCONFIG += libtoxav

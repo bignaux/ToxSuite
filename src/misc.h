@@ -12,6 +12,7 @@
 #include <tox/tox.h>
 #include <tox/toxav.h>
 #include <sodium.h>
+#include "ylog/ylog.h"
 
 struct client_info {
     uint8_t *name;
@@ -34,6 +35,26 @@ void captcha(unsigned char im[70*200], unsigned char l[6]);
 void makegif(unsigned char im[70*200], unsigned char gif[gifsize]);
 void generate_capcha(unsigned char gif[gifsize], unsigned char l[6]);
 #endif
+
+//#define perrlog(msg) yerr("%s: %s", msg, strerror(errno))
+#define perrlog(msg) yerr("%s", msg)
+
+typedef struct FileHash {
+    uint8_t BLAKE2b[crypto_generichash_KEYBYTES];
+} FileHash;
+
+typedef struct FileNode {
+    char *file;
+    FileHash *info;
+    time_t mtime;
+    off_t size;
+    int exists;
+} FileNode;
+
+void human_readable_filesize(char *dest, off_t size);
+unsigned char *hex_string_to_bin(char hex_string[]);
+char *human_readable_id(uint8_t *address, uint16_t length);
+char *gnu_basename(char *path);
 
 ssize_t toxstream_write(void *c, const char *message, size_t size);
 void print_secretkey(FILE *stream, const Tox *tox);

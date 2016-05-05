@@ -232,8 +232,11 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
                     "              +--------------+                    +--------------+\n");
             break;
         case 't':;
-            char * outfilename = "85B648131DD80FC1DD5F453DE3AC8584B7EB34CC0AD3E7AE5E2245A08161386F.png";
-            add_filesender(si->tox, friend_number, outfilename);
+            struct FileSender *fs = FileSender_new(&FilesSender);
+            fs->friend_number = friend_number;
+            fs->file = fopen("screenshot.png", "r");
+            fs->filename = strdup("shot.png");
+            add_filesender(si->tox, fs);
             break;
 
         case 'w':;

@@ -39,10 +39,15 @@
 
 #include <sodium.h>
 
+#include "fileop.h"
+#include "filesend.h"
+#include "callbacks.h"
+
 static bool signal_exit = false;
 
 #define FRIEND_PURGE_INTERVAL SEC_PER_HOUR * HOUR_PER_DAY * 30
 #define GROUP_PURGE_INTERVAL 3600
+#define TOXXD true
 
 void self_connection_status(Tox *UNUSED(tox), TOX_CONNECTION status, void *UNUSED(userData))
 {
@@ -59,6 +64,7 @@ static struct toxNodes {
     uint16_t    port;
     const char *key;
 } nodes[] = {
+{ "127.0.0.1",       33445, "728925473812C7AAC482BE7250BCCAD0B8CB9F737BF3D42ABD34459C1768F854"},
 { "144.76.60.215",   33445, "04119E835DF3E78BACF0F84235B300546AF8B936F035185E2A8E9E0A67C8924F" },
 { "192.210.149.121", 33445, "F404ABAA1C99A9D37D61AB54898F56793E1DEF8BD46B1038B9D822E8460FAB67" },
 { "195.154.119.113", 33445, "E398A69646B8CEACA9F0B84F553726C1C49270558C57DF5F3C368F05A7D71354" },
@@ -100,6 +106,7 @@ struct suit_info *suit_info_new(struct suit_info *si)
     sprintf(si->version,"%s-%s", VERSION, GIT_VERSION);
 
     INIT_LIST_HEAD(&si->friends_info);
+
     return si;
 }
 
@@ -109,18 +116,31 @@ void callbacks_init(struct suit_info *si)
 
     tox_callback_self_connection_status(si->tox, self_connection_status, NULL);
 
-    tox_callback_friend_message(si->tox, friend_message, si);
+    /*tox-xd hack*/
+    /* Callbacks */
+    if (TOXXD)
+    {
+        tox_callback_friend_message(si->tox, on_message, NULL);
+        file_new_set_callback(on_new_file);
+    } else {
+        tox_callback_friend_message(si->tox, friend_message, si);
+    }
+
+    /* suit core*/
+
     tox_callback_friend_request(si->tox, friend_request_cb, &si->friends_info);
     tox_callback_friend_name(si->tox, friend_name_cb, &si->friends_info);
     tox_callback_friend_status(si->tox, friend_status_cb, &si->friends_info);
     tox_callback_friend_connection_status(si->tox, friend_connection_status_cb, &si->friends_info);
     tox_callback_friend_status_message(si->tox, friend_status_message_cb, &si->friends_info);
 
-    tox_callback_file_recv_chunk(si->tox, write_file, NULL);
-    tox_callback_file_recv_control(si->tox, file_print_control, NULL);
-    tox_callback_file_recv(si->tox, file_request_accept, NULL);
+    tox_callback_file_chunk_request(si->tox, file_chunk_request_cb, NULL);
+    tox_callback_file_recv_control(si->tox, file_recv_control_cb, NULL);
+    tox_callback_file_recv_chunk(si->tox, file_recv_chunk_cb, NULL);
 
-    tox_callback_file_chunk_request(si->tox, tox_file_chunk_request, NULL);
+    tox_callback_file_recv(si->tox, file_recv_cb, NULL);
+
+
 
     si->toxav = toxav_new(si->tox, &toxav_err);
     if (toxav_err != TOXAV_ERR_NEW_OK) {
@@ -204,7 +224,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    redirect_output();
+//    redirect_output();
 
     /* Load datas
      *
@@ -217,14 +237,14 @@ int main(int argc, char **argv)
     TOX_ERR_NEW err = TOX_ERR_NEW_OK;
     struct Tox_Options options;
     tox_options_default(&options);
-
+    print_option(&options);
 
     //    load_json_profile(&si->tox, &options);
 
     if (!access(si->data_filename, R_OK|W_OK)) {
         if (load_profile(&si->tox, &options,si->data_filename, passphrase)) {
             yinfo("Failed to load data from disk");
-            return -1;
+            return EXIT_FAILURE;
         }
     } else {
         yinfo("Creating a new profile");
@@ -232,7 +252,7 @@ int main(int argc, char **argv)
         toxdata_set_shouldSaveConfig(true);
         if (err != TOX_ERR_NEW_OK) {
             ywarn("Error at tox_new, error: %d", err);
-            return -1;
+            return EXIT_FAILURE;
         }
     }
 
@@ -293,6 +313,16 @@ int main(int argc, char **argv)
 
     //    memcpy(&tsprev, &tscalltest, sizeof(struct timespec));
 
+
+    char *cachedir_path = "/tmp/testcache";
+    char *shareddir_path = "/media/data/musique/Baroness - Purple [FLAC]";
+    int rc = filenode_load_fromdir(cachedir_path);
+    yinfo("Loaded %i files from cache", rc);
+    /* checks if loaded files actually exist */
+    file_recheck_callback(SIGUSR1);
+//    FileSenders_init();
+    FileQueue_init(&FilesSender);
+
     /* polling loop
      * by order of priority (max priority at top list)
      */
@@ -339,9 +369,16 @@ int main(int argc, char **argv)
             continue;
         }
 
+        if (nanosec_timeout(&tsfriend, &tpnow, 5000 * NSEC_PER_USEC)) {
+
+            file_do(shareddir_path, cachedir_path);
+//            file_senders_do(si->tox);
+        }
+
         /* encryption could take some time - very low priority
          * too much called, IMPROVE
          */
+        toxdata_set_shouldSaveConfig(false);
         if (toxdata_get_shouldSaveConfig())
         {
             ydebug("suit saves toxdata");
@@ -359,10 +396,12 @@ int main(int argc, char **argv)
         nanosleep((const struct timespec[]){{0, sleep_delay }}, NULL);
     }
 
-    ywarn("Killing tox and saving profile");
+    ywarn("SIGINT/SIGTERM received, terminating...");
+
     save_profile(si->tox,si->data_filename, passphrase);
     calltest_destroy(si->toxav);
+    FileQueue_destroy(&FilesSender);
     toxav_kill(si->toxav);
     tox_kill(si->tox);
-    return 0;
+    return EXIT_SUCCESS;
 }
