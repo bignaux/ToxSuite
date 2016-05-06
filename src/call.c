@@ -101,6 +101,11 @@ struct call_tester *call_tester_add_entry(struct list_head *call_testers, const 
     calltester->elapsed = 0;
     calltester->delay = DEFAULT_DELAY; // UINT64_MAX;
     calltester->outfilename = strdup("/tmp/call-XXXXXX.wav");
+    if (!calltester->outfilename) {
+        free(calltester->ctrecord);
+        free(calltester);
+        return NULL;
+    }
     int fd = mkstemps(calltester->outfilename, 4);
     close(fd);
 
@@ -126,10 +131,9 @@ void call_tester_destroy(struct call_tester *calltester)
 
 void call_testers_destroy(struct list_head *calltesters)
 {
-    struct call_tester *f;
+    struct call_tester *f, *n;
 
-    while( !list_empty(calltesters) ) {
-        f = list_entry(calltesters->next,struct call_tester,list);
+    list_for_each_entry_safe(f, n, calltesters, list) {
         call_tester_destroy(f);
     }
 }

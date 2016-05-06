@@ -136,7 +136,7 @@ static int file_walk_callback(const char *path, const struct stat *sptr, int typ
     return 0;
 }
 
-int file_walk_shared(char *shrdir)
+int file_walk_shared(const char *shrdir)
 {
     char *abspath = NULL;
     int rc;
@@ -195,7 +195,7 @@ void file_recheck_callback(int signo)
  *
  * If the hashing flag was set, take it's number and start the hashing,
  * when the entire file has been read or an error occurs clear the hashing flag.*/
-int file_do(char *shrdir, char *cachedir)
+int file_do(const char *shrdir, const char *cachedir)
 {
     uint32_t i, t;
     int32_t rc, n = -1;
@@ -412,7 +412,7 @@ static int filenode_dump(FileNode *fnode, char *path)
     return 0;
 }
 
-static int directory_count(char *path)
+static int directory_count(const char *path)
 {
     DIR * dirp;
     struct dirent * entry;
@@ -455,7 +455,7 @@ static int directory_count(char *path)
     return count;
 }
 
-int filenode_load_fromdir(char *cachedir)
+int filenode_load_fromdir(const char *cachedir)
 {
     FileNode *fn;
     char pathbuf[PATH_MAX + 20];

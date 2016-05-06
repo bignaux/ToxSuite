@@ -278,10 +278,9 @@ int friends_info_number_of_friend(struct list_head *friends_info)
 
 void friends_info_destroy(struct list_head *friends_info)
 {
-    struct friend_info *f;
+    struct friend_info *f, *n;
 
-    while( !list_empty(friends_info) ) {
-        f = list_entry(friends_info->next,struct friend_info,list);
+    list_for_each_entry_safe(f, n, friends_info, list) {
         friend_info_destroy(f);
     }
 }

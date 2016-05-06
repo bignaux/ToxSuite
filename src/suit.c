@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #include <sodium.h>
 
@@ -182,6 +183,8 @@ int main(int argc, char **argv)
     const char *name = getenv("SUIT_NAME");
     const char *status_msg = getenv("SUIT_STATUSMSG");
     const char *home = getenv("SUIT_HOME");
+    const char *cachedir_path = "/tmp/testcache";
+    const char *shareddir_path = "/usr/share/zoneinfo/Europe/";
 
     signal(SIGINT, handle_signal);
 
@@ -215,16 +218,18 @@ int main(int argc, char **argv)
     }
 
     /* Change the current working directory */
-    if(access(home,  R_OK|W_OK|X_OK)) {
-        yerr("$SUIT_HOME is not accessible or have not properly access right.");
+    int fdir = open(home, O_DIRECTORY);
+    if (fdir == -1)  {
+        yerr("Suit can't change home to %s : %s", home, strerror(errno));
         exit(EXIT_FAILURE);
     }
-    if ((chdir(home)) < 0) {
+    if ((fchdir(fdir)) < 0) {
         /* Log the failure */
         exit(EXIT_FAILURE);
     }
+    close(fdir);
 
-//    redirect_output();
+    //    redirect_output();
 
     /* Load datas
      *
@@ -298,8 +303,6 @@ int main(int argc, char **argv)
             calltest_delay = 0,
             sleep_delay = 0;
 
-    int i = 0;
-
     // initial to timespec_now(&tp1);?
     struct timespec tpnow;
     struct timespec tsprev = { 0, 0 };
@@ -314,13 +317,11 @@ int main(int argc, char **argv)
     //    memcpy(&tsprev, &tscalltest, sizeof(struct timespec));
 
 
-    char *cachedir_path = "/tmp/testcache";
-    char *shareddir_path = "/media/data/musique/Baroness - Purple [FLAC]";
+
     int rc = filenode_load_fromdir(cachedir_path);
     yinfo("Loaded %i files from cache", rc);
     /* checks if loaded files actually exist */
     file_recheck_callback(SIGUSR1);
-//    FileSenders_init();
     FileQueue_init(&FilesSender);
 
     /* polling loop
@@ -329,8 +330,6 @@ int main(int argc, char **argv)
     ydebug("entering busy-loop");
     while (!signal_exit) {
 
-        i++;
-        memcpy(&tsprev, &tpnow, sizeof(struct timespec));
         timespec_now(&tpnow);
 
         calltest_delay = calltest_iteration_interval();
@@ -369,10 +368,9 @@ int main(int argc, char **argv)
             continue;
         }
 
+        // see file_recheck
         if (nanosec_timeout(&tsfriend, &tpnow, 5000 * NSEC_PER_USEC)) {
-
             file_do(shareddir_path, cachedir_path);
-//            file_senders_do(si->tox);
         }
 
         /* encryption could take some time - very low priority
@@ -394,6 +392,7 @@ int main(int argc, char **argv)
         ytrace("elasped time { %ju, %ju}, sleep_delay = %ju",tselasped.tv_sec, tselasped.tv_nsec, sleep_delay);
         ytrace("sleep_delay = %ju",sleep_delay);
         nanosleep((const struct timespec[]){{0, sleep_delay }}, NULL);
+        memcpy(&tsprev, &tpnow, sizeof(struct timespec));
     }
 
     ywarn("SIGINT/SIGTERM received, terminating...");
