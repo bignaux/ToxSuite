@@ -1,3 +1,22 @@
+/*
+ *  Copyright (C) loadletter @ https://github.com/loadletter/tox-xd
+ *  Copyright (C) Ronan Bignaux
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -19,9 +38,9 @@
 #define SHRDIR_MAX_DESCRIPTORS 6
 
 static FileNode **shr_list = NULL;
-static uint shr_list_len = 0;
+static uint32_t shr_list_len = 0;
 static FileNode **new_list = NULL;
-static uint new_list_len = 0;
+static uint32_t new_list_len = 0;
 static volatile sig_atomic_t file_recheck = false;
 /* callback for new file */
 static void (*file_new_c)(FileNode *, int) = NULL;
@@ -31,7 +50,7 @@ static int filenode_dump(FileNode *fnode, char *path);
 static int file_checksumcalc_noblock(FileHash *dest, char *filename)
 {
     static FILE *f = NULL;
-    uint i;
+    uint32_t i;
     int rc;
     uint8_t buf[HASHING_BUFSIZE];
     static crypto_generichash_state state;
@@ -45,7 +64,6 @@ static int file_checksumcalc_noblock(FileHash *dest, char *filename)
         }
         //        state = sodium_malloc(crypto_generichash_statebytes());
         //        buf = malloc(HASHING_BUFSIZE);
-        ydebug("crypto_generichash_KEYBYTES = %d", crypto_generichash_KEYBYTES);
         crypto_generichash_init(&state, NULL, 0, crypto_generichash_KEYBYTES);
     }
 
@@ -61,11 +79,6 @@ static int file_checksumcalc_noblock(FileHash *dest, char *filename)
             perrlog("fclose");
         f = NULL;
         rc = 0;
-        char *human_blake = human_readable_id(dest->BLAKE2b, crypto_generichash_KEYBYTES);
-        ydebug("%s %s", filename, human_blake);
-        free(human_blake);
-        //        free(state);
-        //        free(buf);
     }
 
 
@@ -73,7 +86,6 @@ static int file_checksumcalc_noblock(FileHash *dest, char *filename)
      * rc == 0: complete
      * rc < 0: error*/
 
-    //    free(BLAKE2b);
     return(rc);
 }
 
@@ -82,7 +94,8 @@ static int file_checksumcalc_noblock(FileHash *dest, char *filename)
  *  fileinfo struct is allocated */
 static int file_walk_callback(const char *path, const struct stat *sptr, int type)
 {
-    int i, n = -1;
+    uint32_t i;
+    int32_t n = -1;
     if (type == FTW_DNR)
         ywarn("Directory %s cannot be traversed.\n", path);
     if (type == FTW_F)
@@ -128,10 +141,10 @@ int file_walk_shared(char *shrdir)
     char *abspath = NULL;
     int rc;
 
-    abspath = realpath(shrdir, abspath);
-    if(abspath == NULL)
+    abspath = canonicalize_file_name(shrdir);
+    if(!abspath)
     {
-        perrlog("realpath");
+        perrlog("canonicalize_file_name");
         return -1;
     }
     rc = ftw(abspath, file_walk_callback, SHRDIR_MAX_DESCRIPTORS);
@@ -147,7 +160,7 @@ int file_walk_shared(char *shrdir)
 /* walks the current shared files and check if they still exist */
 void file_exists_shared(void)
 {
-    int i;
+    uint32_t i;
 
     for(i=0;i<shr_list_len;i++)
     {
@@ -184,8 +197,8 @@ void file_recheck_callback(int signo)
  * when the entire file has been read or an error occurs clear the hashing flag.*/
 int file_do(char *shrdir, char *cachedir)
 {
-    int i, t, rc;
-    int n = -1;
+    uint32_t i, t;
+    int32_t rc, n = -1;
     static int hashing = -1;
     static int last;
 
@@ -293,8 +306,6 @@ int file_get_shared_len(void)
  * put all predictable things in the beginning
  * put filename last and without newline
  * example:
- * crc32
- * md5
  * BLAKE2b
  * mtime
  * size
@@ -302,7 +313,7 @@ int file_get_shared_len(void)
  */
 static FileNode *filenode_load(char *path)
 {
-    char BLAKE2b[crypto_generichash_KEYBYTES], filename[PATH_MAX + 1];
+    char BLAKE2b[crypto_generichash_KEYBYTES * 2 +1], filename[PATH_MAX + 1];
     char *pos;
 
     FILE *fp = fopen(path, "rb");
@@ -347,9 +358,10 @@ static FileNode *filenode_load(char *path)
 
     if(feof(fp))
     {
-        int i;
+        uint8_t i;
         pos = BLAKE2b;
-        for (i = 0; i < sizeof(fn->info->BLAKE2b); ++i, pos += 2)
+        // TODO : use sodium
+        for (i = 0; i < crypto_generichash_KEYBYTES; ++i, pos += 2)
             sscanf(pos, "%2hhx", &fn->info->BLAKE2b[i]);
 
         /* file_exists_shared will check later if they actually exist */
@@ -405,7 +417,8 @@ static int directory_count(char *path)
     DIR * dirp;
     struct dirent * entry;
     int count = 0;
-    int i, digitflag;
+    uint8_t i;
+    bool digitflag;
 
     dirp = opendir(path);
     if(dirp == NULL)
@@ -461,10 +474,10 @@ int filenode_load_fromdir(char *cachedir)
         if(access(pathbuf, R_OK|W_OK) != -1)
         {
             fn = filenode_load(pathbuf);
-            if(fn != NULL)
+            if(fn)
             {
                 shr_list = realloc(shr_list, sizeof(FileNode *) * (shr_list_len + 1));
-                if(shr_list == NULL)
+                if(!shr_list)
                 {
                     perrlog("realloc");
                     return -1;

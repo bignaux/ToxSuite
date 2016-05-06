@@ -52,7 +52,6 @@ typedef struct FileNode {
 } FileNode;
 
 void human_readable_filesize(char *dest, off_t size);
-unsigned char *hex_string_to_bin(char hex_string[]);
 char *human_readable_id(uint8_t *address, uint16_t length);
 char *gnu_basename(char *path);
 

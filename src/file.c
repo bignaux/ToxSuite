@@ -140,7 +140,10 @@ void file_chunk_request_cb(Tox *tox, uint32_t friend_number, uint32_t file_numbe
         return;
     }
 
-    fseek(f->file, position, SEEK_SET); /* notice : since libsodium ensure validity of data, fseek() is only necessary for resume */
+    /* notice : since libsodium ensure validity of data, fseek() is only necessary for resume */
+    if(!fseek(f->file, position, SEEK_SET))
+        return;
+
     data = malloc(length);
     len = fread(data, 1, length, f->file);
     tox_file_send_chunk(tox, friend_number, file_number, position, data, len, 0);
@@ -217,7 +220,11 @@ void file_recv_chunk_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, 
     if (!pFile)
         return;
 
-    fseek(pFile, position, SEEK_SET);
+    if(!fseek(pFile, position, SEEK_SET)) {
+        yerr("file_recv_chunk_cb : couldn't seek to position %ju",position);
+        fclose(pFile);
+        return;
+    }
 
     if (fwrite(data, length, 1, pFile) != 1)
         yinfo("Error writing to file");

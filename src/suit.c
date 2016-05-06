@@ -259,7 +259,7 @@ int main(int argc, char **argv)
     /* set to user config
      *
      */
-    if(!name) {
+    if(name) {
         size = strlen(name);
         if( size > TOX_MAX_NAME_LENGTH)
         {
@@ -268,7 +268,7 @@ int main(int argc, char **argv)
         }
         tox_self_set_name(si->tox, (uint8_t *)name, size, NULL);
     }
-    if(!status_msg) {
+    if(status_msg) {
         size = strlen(status_msg);
         if (size > TOX_MAX_STATUS_MESSAGE_LENGTH)
         {

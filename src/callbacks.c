@@ -80,15 +80,16 @@ static void cmd_info(Tox *m, int friendnum, int argc, char (*argv)[MAX_ARGS_SIZE
 
     rc = snprintf(buf, sizeof(buf), formatstr, packn, gnu_basename(fn->file), fn->size,
                   hu_size, timestr, blake);
+    free(blake);
 
-    if(rc < 0 || tox_friend_send_message(m, friendnum, TOX_MESSAGE_TYPE_NORMAL,
-                                         (uint8_t *) buf, rc + 1, &error) == -1)
+    if(rc > 0) {
+        tox_friend_send_message(m, friendnum, TOX_MESSAGE_TYPE_NORMAL,
+                                (uint8_t *) buf, rc + 1, &error);
+    }
+    else
     {
         yerr("Failed to send info msg to friend n°%i", friendnum);
     }
-
-//    free(md5);
-//    free(sha256);
 }
 
 static void cmd_send(Tox *m, int friendnum, int argc, char (*argv)[MAX_ARGS_SIZE])
