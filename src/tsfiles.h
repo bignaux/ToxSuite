@@ -1,0 +1,16 @@
+#ifndef _TSFILES_
+#define _TSFILES_
+
+#include "file.h"
+#include "friend.h"
+#include "list.h"
+#include <tox/tox.h>
+
+
+struct list_head FileQueueLoaded;
+
+int save_senders(struct list_head* FileQueue, struct list_head *friends_info);
+int resume_send(Tox *tox, struct list_head* FileQueueSend, struct list_head* FileQueueLoad, struct friend_info *fr);
+int load_senders(struct list_head* FileQueue, struct list_head *friends_info);
+
+#endif

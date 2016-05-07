@@ -19,6 +19,9 @@
 #include "toxdata.h" // only for toxdata_set_shouldSaveConfig(true);
 #include "ylog/ylog.h"
 
+#include "tsfiles.h"
+#include "file.h"
+
 struct friend_info * friend_info_add_entry(struct list_head *friends_info, const uint32_t friend_number)
 {
     struct list_head *ptr;
@@ -122,7 +125,7 @@ void friend_name_cb(Tox *tox, uint32_t friend_number, const uint8_t *name, size_
     f->name = realloc(f->name, length * sizeof(uint8_t) + 1);
     memcpy(f->name, name, length);
     f->name[length] = '\0';
-    toxdata_set_shouldSaveConfig(true);
+    //    toxdata_set_shouldSaveConfig(true);
 }
 
 void friend_status_message_cb(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length,
@@ -133,7 +136,7 @@ void friend_status_message_cb(Tox *tox, uint32_t friend_number, const uint8_t *m
     f->status_message = realloc(f->status_message, length * sizeof(uint8_t) + 1);
     memcpy(f->status_message, message, length);
     f->status_message[length] = '\0';
-    toxdata_set_shouldSaveConfig(true);
+    //    toxdata_set_shouldSaveConfig(true);
 }
 
 void friend_status_cb(Tox *tox, uint32_t friend_number, TOX_USER_STATUS status, void *user_data)
@@ -141,7 +144,7 @@ void friend_status_cb(Tox *tox, uint32_t friend_number, TOX_USER_STATUS status, 
     struct friend_info *f;
     f = friend_info_by_friend_number(user_data, friend_number);
     f->status = status;
-    toxdata_set_shouldSaveConfig(true);
+    //    toxdata_set_shouldSaveConfig(true);
 }
 
 void friend_connection_status_cb(Tox *tox, uint32_t friend_number, TOX_CONNECTION connection_status,
@@ -150,7 +153,18 @@ void friend_connection_status_cb(Tox *tox, uint32_t friend_number, TOX_CONNECTIO
     struct friend_info *f;
     f = friend_info_by_friend_number(user_data, friend_number);
     f->connection_status = connection_status;
-    toxdata_set_shouldSaveConfig(true);
+    switch(connection_status)
+    {
+    case TOX_CONNECTION_NONE:
+        break;
+    case TOX_CONNECTION_TCP:
+    case TOX_CONNECTION_UDP:
+        ydebug("%s is connected via %s.", f->name, (f->connection_status==TOX_CONNECTION_TCP) ? "tcp" : "udp" );
+        ydebug("%s tox:%s", f->name, f->tox_id_hex);
+        resume_send(tox, &FilesSender, &FileQueueLoaded, f);
+        break;
+    }
+    //    toxdata_set_shouldSaveConfig(true);
 }
 
 /*

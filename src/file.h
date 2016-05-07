@@ -14,7 +14,7 @@
 #include <stdbool.h>
 
 #include <tox/tox.h>
-#include <tox/toxav.h>
+//#include <tox/toxav.h>
 #include <sodium.h>
 
 #include "ylog/ylog.h"
@@ -49,8 +49,6 @@ int FileQueue_size(struct list_head *FileQueue);
 FileSender *FileSender_get(struct list_head *FileQueue, const uint32_t friend_number, const uint32_t file_number);
 FileSender *FileSender_new(struct list_head *FileQueue);
 void FileSender_destroy(struct FileSender *f);
-
-int save_senders(struct list_head *FileQueue);
 
 int printf_file(FILE* stream, const char *filename);
 

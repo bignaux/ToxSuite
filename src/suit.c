@@ -43,6 +43,7 @@
 #include "fileop.h"
 #include "filesend.h"
 #include "callbacks.h"
+#include "tsfiles.h"
 
 static bool signal_exit = false;
 
@@ -141,8 +142,6 @@ void callbacks_init(struct suit_info *si)
 
     tox_callback_file_recv(si->tox, file_recv_cb, NULL);
 
-
-
     si->toxav = toxav_new(si->tox, &toxav_err);
     if (toxav_err != TOXAV_ERR_NEW_OK) {
         ywarn("Error at toxav_new: %d", toxav_err);
@@ -194,28 +193,28 @@ int main(int argc, char **argv)
     pid_t pid, sid;
 
     /* Fork off the parent process */
-    pid = fork();
-    if (pid < 0) {
-        exit(EXIT_FAILURE);
-    }
-    /* If we got a good PID, then
-       we can exit the parent process. */
-    if (pid > 0) {
-        exit(EXIT_SUCCESS);
-    }
+//    pid = fork();
+//    if (pid < 0) {
+//        exit(EXIT_FAILURE);
+//    }
+//    /* If we got a good PID, then
+//       we can exit the parent process. */
+//    if (pid > 0) {
+//        exit(EXIT_SUCCESS);
+//    }
 
-    /* Change the file mode mask */
-    umask(0);
+//    /* Change the file mode mask */
+//    umask(0);
 
-    /* Open any logs here */
+//    /* Open any logs here */
     ylog_set_level(YLOG_DEBUG, getenv("YLOG_LEVEL"));
 
-    /* Create a new SID for the child process */
-    sid = setsid();
-    if (sid < 0) {
-        /* Log the failure */
-        exit(EXIT_FAILURE);
-    }
+//    /* Create a new SID for the child process */
+//    sid = setsid();
+//    if (sid < 0) {
+//        /* Log the failure */
+//        exit(EXIT_FAILURE);
+//    }
 
     /* Change the current working directory */
     int fdir = open(home, O_DIRECTORY);
@@ -323,6 +322,8 @@ int main(int argc, char **argv)
     /* checks if loaded files actually exist */
     file_recheck_callback(SIGUSR1);
     FileQueue_init(&FilesSender);
+    FileQueue_init(&FileQueueLoaded);
+    load_senders(&FileQueueLoaded, &si->friends_info);
 
     /* polling loop
      * by order of priority (max priority at top list)
@@ -396,10 +397,12 @@ int main(int argc, char **argv)
     }
 
     ywarn("SIGINT/SIGTERM received, terminating...");
-
+    save_senders(&FilesSender, &si->friends_info);
     save_profile(si->tox,si->data_filename, passphrase);
     calltest_destroy(si->toxav);
     FileQueue_destroy(&FilesSender);
+    ydebug("stoping");
+    FileQueue_destroy(&FileQueueLoaded);
     toxav_kill(si->toxav);
     tox_kill(si->tox);
     return EXIT_SUCCESS;

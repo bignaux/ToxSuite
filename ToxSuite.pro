@@ -20,6 +20,9 @@ GIT_VERSION = $$system(git describe --abbrev=8 --dirty --always --tags)
 DEFINES += GIT_VERSION=\\\"$$GIT_VERSION\\\"
 DEFINES += VERSION=\\\"$$VERSION\\\"
 
+# retroshare remove this :
+DEFINES += BE_DEBUG_DECODE
+DEFINES += BE_DEBUG
 
 # dirty lib, disabled.
 captcha {
@@ -66,7 +69,8 @@ suit {
         src/conf.h\
         src/fileop.h\
         src/filesend.h\
-        src/bencode/bencode.h
+        src/bencode/bencode.h \
+        src/tsfiles.h
 
     SOURCES += \
         src/call.c \
@@ -83,7 +87,8 @@ suit {
         src/fileop.c \
         src/filesend.c \
         src/callbacks.c\
-        src/bencode/bencode.c
+        src/bencode/bencode.c \
+        src/tsfiles.c
 
     unix: PKGCONFIG += sndfile
     unix: PKGCONFIG += libtoxav

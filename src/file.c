@@ -23,10 +23,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include "file.h"
 #include "unused.h"
-#include "bencode/bencode.h"
 
 // Improve : would be FileSendQueue something
 void FileQueue_init(struct list_head* FileQueue)
@@ -101,6 +101,7 @@ uint32_t add_filesender(Tox* m, FileSender* f)
         if (f->pathname) {
             f->file = fopen(f->pathname, "rb");
             if (!f->file) {
+                yerr("add_filesender: couldn't open %s : %s", f->pathname, strerror(errno));
                 return UINT32_MAX;
             }
         }
@@ -122,34 +123,9 @@ uint32_t add_filesender(Tox* m, FileSender* f)
     if (err != TOX_ERR_FILE_SEND_OK)
         ywarn("add_filesender error %d", err);
 
-    save_senders(&FilesSender);
-
     return f->file_number; // UINT32_MAX => error
 }
 
-int save_senders(struct list_head* FileQueue)
-{
-    struct FileSender* f;
-    char msg[5000];
-    be_node *whole, *fid, *path, *name;
-
-    whole = be_create_dict();
-    list_for_each_entry(f, FileQueue, list)
-    {
-        if (!f->pathname || !f->filename)
-            break;
-        fid = be_create_int(f->friend_number);
-        name = be_create_str_wlen(f->filename, strlen(f->filename));
-        path = be_create_str_wlen(f->pathname, strlen(f->pathname));
-        be_add_keypair(whole, "name", name);
-        be_add_keypair(whole, "fid", fid);
-        be_add_keypair(whole, "path", path);
-    }
-    int blen = be_encode(whole, msg, 5000);
-    be_free(whole);
-    ydebug("%d : %s", blen, msg);
-    return 0;
-}
 
 /*
  * Callback
