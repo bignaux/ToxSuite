@@ -83,7 +83,7 @@ struct FileSender* FileSender_new(struct list_head* FileQueue)
 void FileSender_destroy(struct FileSender* f)
 {
     list_del(&f->list);
-    fclose(f->file);
+    if(f->file) fclose(f->file);
     free(f);
 }
 

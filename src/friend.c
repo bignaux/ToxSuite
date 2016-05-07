@@ -147,25 +147,7 @@ void friend_status_cb(Tox *tox, uint32_t friend_number, TOX_USER_STATUS status, 
     //    toxdata_set_shouldSaveConfig(true);
 }
 
-void friend_connection_status_cb(Tox *tox, uint32_t friend_number, TOX_CONNECTION connection_status,
-                                 void *user_data)
-{
-    struct friend_info *f;
-    f = friend_info_by_friend_number(user_data, friend_number);
-    f->connection_status = connection_status;
-    switch(connection_status)
-    {
-    case TOX_CONNECTION_NONE:
-        break;
-    case TOX_CONNECTION_TCP:
-    case TOX_CONNECTION_UDP:
-        ydebug("%s is connected via %s.", f->name, (f->connection_status==TOX_CONNECTION_TCP) ? "tcp" : "udp" );
-        ydebug("%s tox:%s", f->name, f->tox_id_hex);
-        resume_send(tox, &FilesSender, &FileQueueLoaded, f);
-        break;
-    }
-    //    toxdata_set_shouldSaveConfig(true);
-}
+
 
 /*
  * Friends functions.

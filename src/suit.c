@@ -401,7 +401,6 @@ int main(int argc, char **argv)
     save_profile(si->tox,si->data_filename, passphrase);
     calltest_destroy(si->toxav);
     FileQueue_destroy(&FilesSender);
-    ydebug("stoping");
     FileQueue_destroy(&FileQueueLoaded);
     toxav_kill(si->toxav);
     tox_kill(si->tox);

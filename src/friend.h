@@ -60,8 +60,7 @@ int friends_info_number_of_friend(struct list_head *friends_info);
 void friend_request_cb(Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length, void *user_data);
 void friend_name_cb(Tox *tox, uint32_t friend_number, const uint8_t *name, size_t length, void *user_data);
 void friend_status_cb(Tox *tox, uint32_t friend_number, TOX_USER_STATUS status, void *user_data);
-void friend_connection_status_cb(Tox *tox, uint32_t friend_number, TOX_CONNECTION connection_status,
-        void *user_data);
+
 void friend_status_message_cb(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length,
         void *user_data);
 

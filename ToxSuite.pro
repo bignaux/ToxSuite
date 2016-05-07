@@ -21,7 +21,7 @@ DEFINES += GIT_VERSION=\\\"$$GIT_VERSION\\\"
 DEFINES += VERSION=\\\"$$VERSION\\\"
 
 # retroshare remove this :
-DEFINES += BE_DEBUG_DECODE
+#DEFINES += BE_DEBUG_DECODE
 DEFINES += BE_DEBUG
 
 # dirty lib, disabled.
