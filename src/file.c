@@ -26,49 +26,51 @@
 
 #include "file.h"
 #include "unused.h"
+#include "bencode/bencode.h"
 
 // Improve : would be FileSendQueue something
-void FileQueue_init(struct list_head *FileQueue)
+void FileQueue_init(struct list_head* FileQueue)
 {
     INIT_LIST_HEAD(FileQueue);
 }
 
-void FileQueue_destroy(struct list_head *FileQueue)
+void FileQueue_destroy(struct list_head* FileQueue)
 {
     struct FileSender *f, *n;
 
-    list_for_each_entry_safe(f, n, FileQueue, list) {
+    list_for_each_entry_safe(f, n, FileQueue, list)
+    {
         FileSender_destroy(f);
     }
 }
 
-int FileQueue_size(struct list_head *FileQueue)
+int FileQueue_size(struct list_head* FileQueue)
 {
-    struct FileSender *f;
+    struct FileSender* f;
     int i = 0;
-    list_for_each_entry(f, FileQueue, list) {
+    list_for_each_entry(f, FileQueue, list)
+    {
         i++;
     }
     return i;
 }
 
-struct FileSender *FileSender_get(struct list_head *FileQueue, const uint32_t friend_number, const uint32_t file_number)
+struct FileSender* FileSender_get(struct list_head* FileQueue, const uint32_t friend_number, const uint32_t file_number)
 {
-    struct FileSender *f;
+    struct FileSender* f;
 
-    list_for_each_entry(f, FileQueue, list) {
-        if ((f->friend_number == friend_number) && (f->file_number == file_number))
-        {
+    list_for_each_entry(f, FileQueue, list)
+    {
+        if ((f->friend_number == friend_number) && (f->file_number == file_number)) {
             return f;
         }
     }
     return NULL;
 }
 
-
-struct FileSender * FileSender_new(struct list_head *FileQueue)
+struct FileSender* FileSender_new(struct list_head* FileQueue)
 {
-    struct FileSender *f;
+    struct FileSender* f;
     f = malloc(sizeof(struct FileSender));
     memset(f, 0, sizeof(struct FileSender));
     /* set default values */
@@ -78,13 +80,12 @@ struct FileSender * FileSender_new(struct list_head *FileQueue)
     return f;
 }
 
-void FileSender_destroy(struct FileSender *f)
+void FileSender_destroy(struct FileSender* f)
 {
     list_del(&f->list);
     fclose(f->file);
     free(f);
 }
-
 
 /*******************************************************************************
  *
@@ -92,30 +93,62 @@ void FileSender_destroy(struct FileSender *f)
  *
  ******************************************************************************/
 
-uint32_t add_filesender(Tox *m, FileSender *f)
+uint32_t add_filesender(Tox* m, FileSender* f)
 {
     TOX_ERR_FILE_SEND err;
 
-    if(!f->file) {
-
-        return UINT32_MAX;
+    if (!f->file) {
+        if (f->pathname) {
+            f->file = fopen(f->pathname, "rb");
+            if (!f->file) {
+                return UINT32_MAX;
+            }
+        }
+        else
+            return UINT32_MAX;
     }
 
-    if(!f->file_size) {
+    if (!f->file_size) {
         fseek(f->file, 0, SEEK_END);
         f->file_size = ftell(f->file);
         fseek(f->file, 0, SEEK_SET);
     }
 
-    ydebug("add_filesender %s",f->filename);
+    ydebug("add_filesender %s", f->filename);
 
     f->file_number = tox_file_send(m, f->friend_number, f->kind, f->file_size, f->file_id, (uint8_t*)f->filename,
-                                   strlen(f->filename), &err);
+        strlen(f->filename), &err);
 
     if (err != TOX_ERR_FILE_SEND_OK)
-        ywarn("add_filesender error %d",err);
+        ywarn("add_filesender error %d", err);
+
+    save_senders(&FilesSender);
 
     return f->file_number; // UINT32_MAX => error
+}
+
+int save_senders(struct list_head* FileQueue)
+{
+    struct FileSender* f;
+    char msg[5000];
+    be_node *whole, *fid, *path, *name;
+
+    whole = be_create_dict();
+    list_for_each_entry(f, FileQueue, list)
+    {
+        if (!f->pathname || !f->filename)
+            break;
+        fid = be_create_int(f->friend_number);
+        name = be_create_str_wlen(f->filename, strlen(f->filename));
+        path = be_create_str_wlen(f->pathname, strlen(f->pathname));
+        be_add_keypair(whole, "name", name);
+        be_add_keypair(whole, "fid", fid);
+        be_add_keypair(whole, "path", path);
+    }
+    int blen = be_encode(whole, msg, 5000);
+    be_free(whole);
+    ydebug("%d : %s", blen, msg);
+    return 0;
 }
 
 /*
@@ -123,14 +156,14 @@ uint32_t add_filesender(Tox *m, FileSender *f)
  *
  */
 
-void file_chunk_request_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, size_t length,
-                           void *user_data)
+void file_chunk_request_cb(Tox* tox, uint32_t friend_number, uint32_t file_number, uint64_t position, size_t length,
+    void* user_data)
 {
-    uint8_t *data;
+    uint8_t* data;
     size_t len;
-    FileSender *f = FileSender_get(&FilesSender, friend_number, file_number);
+    FileSender* f = FileSender_get(&FilesSender, friend_number, file_number);
 
-    if(!f || !f->file) {
+    if (!f || !f->file) {
         yerr("file_chunk_request_cb error : no open file descriptor.");
         return;
     }
@@ -142,7 +175,7 @@ void file_chunk_request_cb(Tox *tox, uint32_t friend_number, uint32_t file_numbe
     }
 
     /* notice : since libsodium ensure validity of data, fseek() is only necessary for resume */
-    if(fseek(f->file, position, SEEK_SET)){
+    if (fseek(f->file, position, SEEK_SET)) {
         ydebug("file_chunk_request_cb : fseek");
         return;
     }
@@ -153,12 +186,11 @@ void file_chunk_request_cb(Tox *tox, uint32_t friend_number, uint32_t file_numbe
     free(data);
 }
 
-void file_recv_control_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, TOX_FILE_CONTROL control,
-                          void *user_data)
+void file_recv_control_cb(Tox* tox, uint32_t friend_number, uint32_t file_number, TOX_FILE_CONTROL control,
+    void* user_data)
 {
-    struct FileSender *f = FileSender_get(&FilesSender, friend_number, file_number);
-    switch(control)
-    {
+    struct FileSender* f = FileSender_get(&FilesSender, friend_number, file_number);
+    switch (control) {
     case TOX_FILE_CONTROL_PAUSE:
         yinfo("File transfer %d paused by friend %d", file_number, friend_number);
         //        f->accepted = false;
@@ -173,16 +205,14 @@ void file_recv_control_cb(Tox *tox, uint32_t friend_number, uint32_t file_number
     }
 }
 
-
 /*******************************************************************************
  *
  * :: File transmission: receiving
  *
  ******************************************************************************/
 
-
-void file_recv_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, uint32_t type, uint64_t file_size,
-                  const uint8_t *filename, size_t filename_length, void *user_data)
+void file_recv_cb(Tox* tox, uint32_t friend_number, uint32_t file_number, uint32_t type, uint64_t file_size,
+    const uint8_t* filename, size_t filename_length, void* user_data)
 {
     if (type == TOX_FILE_KIND_AVATAR)
         yinfo("Avatar not supported yet.");
@@ -196,16 +226,16 @@ void file_recv_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, uint32
 
     if (tox_file_control(tox, friend_number, file_number, TOX_FILE_CONTROL_RESUME, 0)) {
         yinfo("Accepted file transfer. (saving file as: %u.%u.bin)", friend_number, file_number);
-    } else
+    }
+    else
         yinfo("Could not accept file transfer.");
 }
-
 
 /* very poor design
  * look toxcore/testing/tox_sync.c => add file queue for user.
  */
-void file_recv_chunk_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, const uint8_t *data,
-                        size_t length, void *user_data)
+void file_recv_chunk_cb(Tox* tox, uint32_t friend_number, uint32_t file_number, uint64_t position, const uint8_t* data,
+    size_t length, void* user_data)
 {
     char filename[256];
 
@@ -215,7 +245,7 @@ void file_recv_chunk_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, 
     }
 
     sprintf(filename, "%u.%u.bin", friend_number, file_number);
-    FILE *pFile = fopen(filename, "r+b");
+    FILE* pFile = fopen(filename, "r+b");
 
     if (!pFile)
         pFile = fopen(filename, "wb");
@@ -223,8 +253,8 @@ void file_recv_chunk_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, 
     if (!pFile)
         return;
 
-    if(!fseek(pFile, position, SEEK_SET)) {
-        yerr("file_recv_chunk_cb : couldn't seek to position %ju",position);
+    if (!fseek(pFile, position, SEEK_SET)) {
+        yerr("file_recv_chunk_cb : couldn't seek to position %ju", position);
         fclose(pFile);
         return;
     }
@@ -241,34 +271,34 @@ void file_recv_chunk_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, 
  *
  ******************************************************************************/
 
-int printf_file(FILE* stream, const char *filename)
+int printf_file(FILE* stream, const char* filename)
 {
-    FILE * fp;
+    FILE* fp;
     size_t file_size;
-    char *buffer;
+    char* buffer;
     size_t szread;
     int retcode = EXIT_SUCCESS;
 
     struct stat st;
     int fd;
 
-    if ((fd = open (filename, O_WRONLY, 0)) < 0) {
+    if ((fd = open(filename, O_WRONLY, 0)) < 0) {
         yerr("Can't open %s\n", filename);
         exit(EXIT_FAILURE);
     }
-    if (fstat (fd, &st)) {
+    if (fstat(fd, &st)) {
         yerr("fstat error on %s!", filename);
         exit(EXIT_FAILURE);
     }
-    if (st.st_uid != getuid ()) {
+    if (st.st_uid != getuid()) {
         yerr("%s not owner !", filename);
         exit(EXIT_FAILURE);
     }
-    if (! S_ISREG (st.st_mode)) {
+    if (!S_ISREG(st.st_mode)) {
         yerr("%s not a normal file", filename);
         exit(EXIT_FAILURE);
     }
-    if ((fp = fdopen (fd, "w")) == NULL) {
+    if ((fp = fdopen(fd, "w")) == NULL) {
         yerr("Can't open");
         exit(EXIT_FAILURE);
     }
@@ -277,11 +307,12 @@ int printf_file(FILE* stream, const char *filename)
     buffer = malloc(file_size + 1);
     szread = fread(buffer, sizeof(char), st.st_size, fp);
     fclose(fp);
-    if (szread == file_size)
-    {
+    if (szread == file_size) {
         buffer[st.st_size] = '\0';
         fprintf(stream, "%s", buffer);
-    } else retcode = EXIT_FAILURE;
+    }
+    else
+        retcode = EXIT_FAILURE;
     free(buffer);
     exit(retcode);
 }

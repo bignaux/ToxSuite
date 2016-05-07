@@ -2,6 +2,7 @@
 
 Current limitation
 
+* Only single file.
 * Sender is always the one who start the exchange. As an example, avatar is send many time to same client, that often verify by comparing the hash that's a different one.
 * Both sender and receiver have to save state of their file queue in case of connection lost or client close. No standard to save state is provided yet.
 * no method to request file, or a list of, to give client software the capacity of show files shared and request it without need sender action.

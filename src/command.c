@@ -234,7 +234,7 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
         case 't':;
             struct FileSender *fs = FileSender_new(&FilesSender);
             fs->friend_number = friend_number;
-            fs->file = fopen("screenshot.png", "r");
+            fs->pathname = strdup("screenshot.png");
             fs->filename = strdup("shot.png");
             add_filesender(si->tox, fs);
             break;

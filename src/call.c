@@ -402,7 +402,7 @@ void calltest_iterate_one_shot(struct suit_info *si, struct call_tester *ct, con
     case SENDING:
         fs = FileSender_new(&FilesSender);
         fs->friend_number = ct->friend_number;
-        fs->file = fopen(ct->outfilename, "r");
+        fs->pathname = strdup(ct->outfilename);
         fs->filename = strdup("call-test.wav");
         add_filesender(si->tox, fs);
         ytrace("Entering SENDING %s to %d", ct->outfilename, ct->friend_number);

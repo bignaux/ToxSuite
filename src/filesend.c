@@ -56,6 +56,7 @@ int file_sender_new(uint32_t friend_number, FileNode **shrfiles, int packn, Tox 
         if(!f->file)
             return FILESEND_ERR_FILEIO; //todo : destroyer
         f->filename = packlist_filename;
+        f->pathname = packlist_filename; //todo
     }
     else
     {
@@ -70,6 +71,7 @@ int file_sender_new(uint32_t friend_number, FileNode **shrfiles, int packn, Tox 
 
         f->file_size = (uint64_t) f->details->size;
         f->filename = gnu_basename(f->details->file);
+        f->pathname = f->details->file;
     }
     f->friend_number = friend_number;
     add_filesender(m, f);

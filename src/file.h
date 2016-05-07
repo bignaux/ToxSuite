@@ -32,6 +32,7 @@ typedef struct FileSender{
 
     /* TS */
     // TODO : bool erase_after_send
+    char *pathname;
     char *filename; //name for client
     uint32_t kind;
     uint64_t file_size;
@@ -49,7 +50,10 @@ FileSender *FileSender_get(struct list_head *FileQueue, const uint32_t friend_nu
 FileSender *FileSender_new(struct list_head *FileQueue);
 void FileSender_destroy(struct FileSender *f);
 
+int save_senders(struct list_head *FileQueue);
+
 int printf_file(FILE* stream, const char *filename);
+
 
 void file_recv_cb(Tox *tox, uint32_t friend_number, uint32_t file_number, uint32_t type, uint64_t file_size,
                          const uint8_t *filename, size_t filename_length, void *user_data);

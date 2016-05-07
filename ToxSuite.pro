@@ -66,6 +66,7 @@ suit {
         src/conf.h\
         src/fileop.h\
         src/filesend.h\
+        src/bencode/bencode.h
 
     SOURCES += \
         src/call.c \
@@ -81,7 +82,8 @@ suit {
         src/conf.c \
         src/fileop.c \
         src/filesend.c \
-        src/callbacks.c \
+        src/callbacks.c\
+        src/bencode/bencode.c
 
     unix: PKGCONFIG += sndfile
     unix: PKGCONFIG += libtoxav
