@@ -73,6 +73,8 @@ struct FileSender* FileSender_new(struct list_head* FileQueue)
     struct FileSender* f;
     f = malloc(sizeof(struct FileSender));
     memset(f, 0, sizeof(struct FileSender));
+    f->info = malloc(sizeof(struct FileNode));
+//    memset(f, 0, sizeof(struct FileNode));
     /* set default values */
     //    f->kind = TOX_FILE_KIND_DATA;
     //    f->file = NULL;
@@ -84,6 +86,9 @@ void FileSender_destroy(struct FileSender* f)
 {
     list_del(&f->list);
     if(f->file) fclose(f->file);
+    if(f->info->BLAKE2b) free(f->info->BLAKE2b);
+    if(f->info->file) free(f->info->file);
+    if(f->info) free(f->info);
     free(f);
 }
 
@@ -96,6 +101,7 @@ void FileSender_destroy(struct FileSender* f)
 uint32_t add_filesender(Tox* m, FileSender* f)
 {
     TOX_ERR_FILE_SEND err;
+    FileNode *fn = f->info;
 
     if (!f->file) {
         if (f->pathname) {
@@ -109,16 +115,22 @@ uint32_t add_filesender(Tox* m, FileSender* f)
             return UINT32_MAX;
     }
 
-    if (!f->file_size) {
+    // TODO : don't do this on stream
+    if (!fn->length) {
         fseek(f->file, 0, SEEK_END);
-        f->file_size = ftell(f->file);
+        fn->length = ftell(f->file);
         fseek(f->file, 0, SEEK_SET);
     }
 
-    ydebug("add_filesender %s", f->filename);
+    //TODO implement hash : file_checksumcalc_noblock
+    if(!fn->BLAKE2b) {
+        ydebug("add_filesender need hash");
+    }
 
-    f->file_number = tox_file_send(m, f->friend_number, f->kind, f->file_size, f->file_id, (uint8_t*)f->filename,
-        strlen(f->filename), &err);
+    ydebug("add_filesender %s", fn->file);
+
+    f->file_number = tox_file_send(m, f->friend_number, f->kind, fn->length, fn->BLAKE2b, (uint8_t*)fn->file,
+        strlen(fn->file), &err);
 
     if (err != TOX_ERR_FILE_SEND_OK)
         ywarn("add_filesender error %d", err);
@@ -151,6 +163,7 @@ void file_chunk_request_cb(Tox* tox, uint32_t friend_number, uint32_t file_numbe
     }
 
     /* notice : since libsodium ensure validity of data, fseek() is only necessary for resume */
+    // TODO : implement chunk-back storage
     if (fseek(f->file, position, SEEK_SET)) {
         ydebug("file_chunk_request_cb : fseek");
         return;

@@ -236,7 +236,6 @@ void friends_info_init(const Tox *apptox, struct list_head *friends_info, size_t
 struct friend_info *friend_info_by_public_key(struct list_head *friends_info, const char*public_key)
 {
     struct friend_info *f;
-
     list_for_each_entry(f, friends_info, list) {
         if (!strncmp(f->tox_id_hex,public_key,TOX_PUBLIC_KEY_SIZE * 2))
         {

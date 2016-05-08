@@ -31,6 +31,7 @@
 #include <ftw.h>
 #include <sodium.h>
 
+#include "misc.h"
 #include "fileop.h"
 #include "ylog/ylog.h"
 
@@ -47,7 +48,7 @@ static void (*file_new_c)(FileNode *, int) = NULL;
 /* prototypes */
 static int filenode_dump(FileNode *fnode, char *path);
 
-static int file_checksumcalc_noblock(FileHash *dest, char *filename)
+static int file_checksumcalc_noblock(uint8_t *BLAKE2b, char *filename)
 {
     static FILE *f = NULL;
     uint32_t i;
@@ -64,7 +65,7 @@ static int file_checksumcalc_noblock(FileHash *dest, char *filename)
         }
         //        state = sodium_malloc(crypto_generichash_statebytes());
         //        buf = malloc(HASHING_BUFSIZE);
-        crypto_generichash_init(&state, NULL, 0, crypto_generichash_KEYBYTES);
+        crypto_generichash_init(&state, NULL, 0, TOX_FILE_ID_LENGTH);
     }
 
     if((i = fread(buf, 1, HASHING_BUFSIZE, f)) > 0)
@@ -74,7 +75,7 @@ static int file_checksumcalc_noblock(FileHash *dest, char *filename)
     }
     else
     {
-        crypto_generichash_final(&state, dest->BLAKE2b, crypto_generichash_KEYBYTES);
+        crypto_generichash_final(&state, BLAKE2b, TOX_FILE_ID_LENGTH);
         if(fclose(f) != 0)
             perrlog("fclose");
         f = NULL;
@@ -104,7 +105,7 @@ static int file_walk_callback(const char *path, const struct stat *sptr, int typ
         {
             if((strcmp(path, shr_list[i]->file) == 0) &&\
                     (sptr->st_mtime == shr_list[i]->mtime) &&\
-                    (sptr->st_size == shr_list[i]->size))
+                    (sptr->st_size == shr_list[i]->length))
             {
                 n = i;
                 break;
@@ -126,9 +127,9 @@ static int file_walk_callback(const char *path, const struct stat *sptr, int typ
                 return -1;
             }
             new_list[new_list_len]->file = strdup(path);
-            new_list[new_list_len]->info = NULL;
+            new_list[new_list_len]->BLAKE2b = NULL;
             new_list[new_list_len]->mtime = sptr->st_mtime;
-            new_list[new_list_len]->size = sptr->st_size;
+            new_list[new_list_len]->length = sptr->st_size;
             new_list[new_list_len]->exists = true;
             new_list_len++;
         }
@@ -235,7 +236,7 @@ int file_do(const char *shrdir, const char *cachedir)
         else
         {
             free(shr_list[t]->file);
-            free(shr_list[t]->info);
+            free(shr_list[t]->BLAKE2b);
             free(shr_list[t]);
             shr_list[t] = new_list[n];
             last = t;
@@ -249,8 +250,8 @@ int file_do(const char *shrdir, const char *cachedir)
             return -1;
         }
 
-        shr_list[last]->info = malloc(sizeof(FileHash));
-        if(shr_list[last]->info == NULL)
+        shr_list[last]->BLAKE2b = malloc(TOX_FILE_ID_LENGTH);
+        if(shr_list[last]->BLAKE2b == NULL)
         {
             perrlog("malloc");
             return -1;
@@ -261,7 +262,7 @@ int file_do(const char *shrdir, const char *cachedir)
 
     if(hashing >= 0)
     {
-        rc = file_checksumcalc_noblock(shr_list[last]->info, shr_list[last]->file);
+        rc = file_checksumcalc_noblock(shr_list[last]->BLAKE2b, shr_list[last]->file);
         if(rc <= 0)
         {
             hashing = -1;
@@ -313,26 +314,26 @@ int file_get_shared_len(void)
  */
 static FileNode *filenode_load(char *path)
 {
-    char BLAKE2b[crypto_generichash_KEYBYTES * 2 +1], filename[PATH_MAX + 1];
+    char BLAKE2b[TOX_FILE_ID_LENGTH * 2 +1], filename[PATH_MAX + 1];
     char *pos;
 
     FILE *fp = fopen(path, "rb");
-    if(fp == NULL)
+    if(!fp)
     {
         perrlog("fopen");
         return NULL;
     }
 
     FileNode *fn = malloc(sizeof(FileNode));
-    if(fn == NULL)
+    if(!fn)
     {
         perrlog("malloc");
         fclose(fp);
         return NULL;
     }
 
-    fn->info = malloc(sizeof(FileHash));
-    if(fn->info == NULL)
+    fn->BLAKE2b = malloc(TOX_FILE_ID_LENGTH);
+    if(!fn->BLAKE2b)
     {
         perrlog("malloc");
         fclose(fp);
@@ -340,11 +341,11 @@ static FileNode *filenode_load(char *path)
         return NULL;
     }
 
-    if(fscanf(fp, "%64s\n", BLAKE2b) != 1)
+    if(fscanf(fp, "%64s\n", BLAKE2b) != 1) //TODO : variable format
         goto parserr;
     if(fscanf(fp, "%lld\n", (long long * ) &fn->mtime) != 1)
         goto parserr;
-    if(fscanf(fp, "%lld\n", (long long * ) &fn->size) != 1)
+    if(fscanf(fp, "%lld\n", (long long * ) &fn->length) != 1)
         goto parserr;
 
     int rc = fread(filename, 1, PATH_MAX, fp);
@@ -361,8 +362,8 @@ static FileNode *filenode_load(char *path)
         uint8_t i;
         pos = BLAKE2b;
         // TODO : use sodium
-        for (i = 0; i < crypto_generichash_KEYBYTES; ++i, pos += 2)
-            sscanf(pos, "%2hhx", &fn->info->BLAKE2b[i]);
+        for (i = 0; i < TOX_FILE_ID_LENGTH; ++i, pos += 2)
+            sscanf(pos, "%2hhx", &fn->BLAKE2b[i]);
 
         /* file_exists_shared will check later if they actually exist */
         fn->exists = false;
@@ -380,7 +381,7 @@ static FileNode *filenode_load(char *path)
 parserr:
     yerr("Error parsing: %s", path);
     fclose(fp);
-    free(fn->info);
+    free(fn->BLAKE2b);
     free(fn);
     return NULL;
 }
@@ -395,11 +396,11 @@ static int filenode_dump(FileNode *fnode, char *path)
         return -1;
     }
 
-    BLAKE2b = human_readable_id(fnode->info->BLAKE2b, crypto_generichash_KEYBYTES);
+    BLAKE2b = human_readable_id(fnode->BLAKE2b, TOX_FILE_ID_LENGTH);
 
     fprintf(fp, "%s\n", BLAKE2b);
     fprintf(fp, "%lld\n", (long long) fnode->mtime);
-    fprintf(fp, "%lld\n", (long long) fnode->size);
+    fprintf(fp, "%lld\n", (long long) fnode->length);
     fprintf(fp, "%s", fnode->file);
 
     free(BLAKE2b);

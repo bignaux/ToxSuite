@@ -6,7 +6,7 @@ deactivate () {
     unset SUIT_PASSPHRASE
     unset SUIT_NAME
     unset SUIT_STATUSMSG
-    unset YLOG_DEFAULT
+    unset SUIT_LEVEL
     unset suitinfo
 }
 
@@ -30,4 +30,4 @@ declare -x SUIT_HOME="/home/genesis/suit"
 declare -x SUIT_PASSPHRASE="somethingintheway"
 declare -x SUIT_NAME="Anna"
 declare -x SUIT_STATUSMSG="A Tox service bot based on ToxSuite."
-declare -x YLOG_DEFAULT=4
+declare -x SUIT_LEVEL=5

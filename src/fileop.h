@@ -1,7 +1,8 @@
 #ifndef FILEOP_H
 #define FILEOP_H
 #include <stdint.h>
-#include "misc.h"
+
+#include "file.h"
 
 void file_recheck_callback(int signo);
 int file_do(const char *shrdir, const char *cachedir);

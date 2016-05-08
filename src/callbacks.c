@@ -73,12 +73,12 @@ static void cmd_info(Tox *m, int friendnum, int argc, char (*argv)[MAX_ARGS_SIZE
     }
 
     fn = fnode[packn];
-    blake = human_readable_id(fn->info->BLAKE2b, crypto_generichash_KEYBYTES);
-    human_readable_filesize(hu_size, fn->size);
+    blake = human_readable_id(fn->BLAKE2b, TOX_FILE_ID_LENGTH);
+    human_readable_filesize(hu_size, fn->length);
     timestr = asctime(gmtime(&fn->mtime));
     timestr[strlen(timestr) - 1] = '\0'; /* remove newline that asctime adds */
 
-    rc = snprintf(buf, sizeof(buf), formatstr, packn, gnu_basename(fn->file), fn->size,
+    rc = snprintf(buf, sizeof(buf), formatstr, packn, gnu_basename(fn->file), fn->length,
                   hu_size, timestr, blake);
     free(blake);
 
@@ -215,7 +215,7 @@ void on_new_file(FileNode *fn, int packn)
     if(group_chat_number == -1)
         return;
 
-    human_readable_filesize(hu_size, fn->size);
+    human_readable_filesize(hu_size, fn->length);
 
     rc = snprintf((char *)groupmsg, sizeof(groupmsg), "New file: #%i [%s] %s", packn, hu_size, gnu_basename(fn->file));
     if(rc < 0)

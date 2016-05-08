@@ -18,25 +18,38 @@
 #include <sodium.h>
 
 #include "ylog/ylog.h"
-#include "misc.h" // FileNode
 #include "list.h"
 
+/* "info" dictionnary */
+typedef struct FileNode {
+    char *file; //TODO rename "name" for client
+    uint8_t *BLAKE2b; // binary TOX_FILE_ID_LENGTH blake2b hash;
+    time_t mtime;
+    off_t length;
+    int exists;
+} FileNode;
+
 typedef struct FileSender{
+    /* shared informations */
+
+    FileNode *info; //TODO : array with multiple files, nested ?
+
+    /* core information */
     FILE *file;
     uint32_t file_number;
     uint32_t friend_number;
+
     /* Tox-xd */
     uint8_t accepted;
-    FileNode *details;
     time_t timestamp;
 
     /* TS */
     // TODO : bool erase_after_send
-    char *pathname;
-    char *filename; //name for client
+    char *pathname; // currently /full/path/filename
+//    char *filename;
     uint32_t kind;
-    uint64_t file_size;
-    uint8_t *file_id;
+//    uint64_t file_size;
+//    uint8_t *file_id;
     struct list_head list;
 } FileSender;
 

@@ -37,7 +37,7 @@ static FILE *file_list_create(void)
     {
         if(fnode[i]->exists)
         {
-            human_readable_filesize(hu_size, fnode[i]->size);
+            human_readable_filesize(hu_size, fnode[i]->length);
             fprintf(fp, "#%-10i [%s] %s\n", i, hu_size, gnu_basename(fnode[i]->file));
         }
     }
@@ -55,23 +55,23 @@ int file_sender_new(uint32_t friend_number, FileNode **shrfiles, int packn, Tox 
         f->file = file_list_create();
         if(!f->file)
             return FILESEND_ERR_FILEIO; //todo : destroyer
-        f->filename = packlist_filename;
+        f->info->file = packlist_filename;
         f->pathname = packlist_filename; //todo
     }
     else
     {
         /* use existing file */
-        f->details = shrfiles[packn];
-        f->file = fopen(f->details->file, "r");
+        f->info = shrfiles[packn];
+        f->file = fopen(f->info->file, "r");
         if (f->file == NULL)
         {
             perrlog("fopen");
             return FILESEND_ERR_FILEIO;
         }
 
-        f->file_size = (uint64_t) f->details->size;
-        f->filename = gnu_basename(f->details->file);
-        f->pathname = f->details->file;
+        f->pathname = f->info->file;
+        f->info->file = gnu_basename(f->info->file);
+
     }
     f->friend_number = friend_number;
     add_filesender(m, f);

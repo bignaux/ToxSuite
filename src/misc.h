@@ -39,18 +39,6 @@ void generate_capcha(unsigned char gif[gifsize], unsigned char l[6]);
 //#define perrlog(msg) yerr("%s: %s", msg, strerror(errno))
 #define perrlog(msg) yerr("%s", msg)
 
-typedef struct FileHash {
-    uint8_t BLAKE2b[crypto_generichash_KEYBYTES];
-} FileHash;
-
-typedef struct FileNode {
-    char *file;
-    FileHash *info;
-    time_t mtime;
-    off_t size;
-    int exists;
-} FileNode;
-
 void human_readable_filesize(char *dest, off_t size);
 char *human_readable_id(uint8_t *address, uint16_t length);
 char *gnu_basename(char *path);

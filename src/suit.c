@@ -47,6 +47,9 @@
 
 static bool signal_exit = false;
 
+#define YLOG_LOOP 6
+#define yloop(...) ylog(YLOG_LOOP, __VA_ARGS__)
+
 #define FRIEND_PURGE_INTERVAL SEC_PER_HOUR * HOUR_PER_DAY * 30
 #define GROUP_PURGE_INTERVAL 3600
 #define TOXXD true
@@ -184,6 +187,7 @@ int main(int argc, char **argv)
     const char *home = getenv("SUIT_HOME");
     const char *cachedir_path = "/tmp/testcache";
     const char *shareddir_path = "/usr/share/zoneinfo/Europe/";
+    const char *debuglevel = getenv("SUIT_LEVEL");
 
     signal(SIGINT, handle_signal);
 
@@ -207,7 +211,7 @@ int main(int argc, char **argv)
 //    umask(0);
 
 //    /* Open any logs here */
-    ylog_set_level(YLOG_DEBUG, getenv("YLOG_LEVEL"));
+    ylog_set_level(YLOG_INFO, debuglevel);
 
 //    /* Create a new SID for the child process */
 //    sid = setsid();
@@ -387,11 +391,11 @@ int main(int argc, char **argv)
 
         sleep_delay = min(3, calltest_delay, tox_delay, toxav_delay);
         timespec_subtract(&tselasped, &tpnow, &tsprev); // elasped time
-        ytrace("elasped time { %ju, %ju}",tselasped.tv_sec, tselasped.tv_nsec);
+        yloop("elasped time { %ju, %ju}",tselasped.tv_sec, tselasped.tv_nsec);
         sleep_delay -= timespec_to_ns(&tselasped);
         sleep_delay /= 10; // resolution = 1/10
-        ytrace("elasped time { %ju, %ju}, sleep_delay = %ju",tselasped.tv_sec, tselasped.tv_nsec, sleep_delay);
-        ytrace("sleep_delay = %ju",sleep_delay);
+        yloop("elasped time { %ju, %ju}, sleep_delay = %ju",tselasped.tv_sec, tselasped.tv_nsec, sleep_delay);
+        yloop("sleep_delay = %ju",sleep_delay);
         nanosleep((const struct timespec[]){{0, sleep_delay }}, NULL);
         memcpy(&tsprev, &tpnow, sizeof(struct timespec));
     }
@@ -400,8 +404,11 @@ int main(int argc, char **argv)
     save_senders(&FilesSender, &si->friends_info);
     save_profile(si->tox,si->data_filename, passphrase);
     calltest_destroy(si->toxav);
+    ydebug("salut ici");
     FileQueue_destroy(&FilesSender);
+    ydebug("salut ici une fois!");
     FileQueue_destroy(&FileQueueLoaded);
+    ydebug("salut ici aussi");
     toxav_kill(si->toxav);
     tox_kill(si->tox);
     return EXIT_SUCCESS;
