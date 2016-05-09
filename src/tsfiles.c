@@ -17,7 +17,6 @@
 /* read https://github.com/irungentoo/Tox_Client_Guidelines/blob/master/Important/File_Transfers.md
  *
  */
-#define _GNU_SOURCE // rawmemchr
 
 #include "tsfiles.h"
 #include "ylog/ylog.h"
@@ -25,7 +24,7 @@
 //#include "misc.h"
 
 #include <stdio.h>
-#include <string.h> // rawmemchr
+//#include <string.h> // rawmemchr
 #include "fileop.h" // file_get_shared
 
 void encode_FileNode(be_node *info, const FileNode *fn)
@@ -63,7 +62,7 @@ void decode_FileNode(FileNode *f, const be_node *info)
 
 // pickup on https://stackoverflow.com/questions/1489830/efficient-way-to-determine-number-of-digits-in-an-integer
 // approximation
-// TODO add sign support
+// TODO add sign support , llint => 19 digits
 long long int NumDigits(long long int x)
 {
     x = llabs(x);
@@ -79,12 +78,10 @@ long long int NumDigits(long long int x)
         10)))))))));
 }
 
-
-size_t be_size(be_node *node)
+size_t be_node_len(be_node *node)
 {
     size_t counter = 0;
     size_t tmp;
-    char *p;
 
     switch(node->type) {
     case BE_STR:
@@ -96,13 +93,13 @@ size_t be_size(be_node *node)
         break;
     case BE_LIST:
         for(int i=0; node->val.l[i]; i++) {
-            counter += be_size(node->val.l[i]);
+            counter += be_node_len(node->val.l[i]);
         }
         counter += 2; // le
         break;
     case BE_DICT:
         for(int i=0; node->val.d[i].val; i++) {
-            counter += be_size(node->val.d[i].val);
+            counter += be_node_len(node->val.d[i].val);
             tmp = strlen(node->val.d[i].key);
             counter += tmp + NumDigits(tmp) + 1; // :
         }
@@ -129,7 +126,7 @@ void dump_shrlist()
         encode_FileNode(info, fn);
         be_add_list(ROOT, info);
     }
-    blen = be_size(ROOT) +1;  // 'why +1 ? '\0' ?
+    blen = be_node_len(ROOT) +1;  // 'why +1 ? '\0' ?
     ydebug("be_size = %d", blen);
     msg = malloc(blen);
     blen = be_encode(ROOT, msg, blen);
@@ -172,8 +169,9 @@ int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
             break;
         filesend = be_create_dict();
         ytrace("fr->friend_number = %d , f->friend_number = %d", fr->friend_number, f->friend_number);
-        ytrace("fr->tox_id_hex : %s , %zu", fr->tox_id_hex, strlen(fr->tox_id_hex));
-        toxid = be_create_str_wlen(fr->tox_id_hex, strlen(fr->tox_id_hex));
+//        ytrace("fr->tox_id_hex : %s , %zu", fr->tox_id_hex, strlen(fr->tox_id_hex));
+//        toxid = be_create_str_wlen(fr->tox_id_hex, strlen(fr->tox_id_hex));
+        toxid = be_create_str_wlen((char *)fr->tox_id_bin, TOX_PUBLIC_KEY_SIZE);
         path = be_create_str_wlen(f->pathname, strlen(f->pathname));
         info = be_create_dict();
         encode_FileNode(info, fn);
@@ -183,7 +181,7 @@ int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
         be_add_list(ROOT, filesend);
 
     }
-    blen = be_size(ROOT) +1;
+    blen = be_node_len(ROOT) +1;
     msg = malloc(blen);
     blen = be_encode(ROOT, msg, blen);
     be_free(ROOT);
@@ -272,7 +270,8 @@ int load_senders(struct list_head* FileQueue, struct list_head *friends_info)
             key = filesend->val.d[i].key;
             if (!strcmp("toxid",key)) {
                 toxid = filesend->val.d[i].val;
-                fr = friend_info_by_public_key(friends_info,toxid->val.s);
+
+                fr = friend_info_by_public_keybin(friends_info,(uint8_t *) toxid->val.s);
                 if(!fr) {
                     FileSender_destroy(f);
                     break;

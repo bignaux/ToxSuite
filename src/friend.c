@@ -233,7 +233,7 @@ void friends_info_init(const Tox *apptox, struct list_head *friends_info, size_t
  *
  */
 
-struct friend_info *friend_info_by_public_key(struct list_head *friends_info, const char*public_key)
+struct friend_info *friend_info_by_public_keyhex(struct list_head *friends_info, const char *public_key)
 {
     struct friend_info *f;
     list_for_each_entry(f, friends_info, list) {
@@ -244,6 +244,19 @@ struct friend_info *friend_info_by_public_key(struct list_head *friends_info, co
     }
     return NULL;
 }
+
+struct friend_info *friend_info_by_public_keybin(struct list_head *friends_info, const uint8_t *public_key)
+{
+    struct friend_info *f;
+    list_for_each_entry(f, friends_info, list) {
+        if (!sodium_memcmp(f->tox_id_bin,public_key,TOX_PUBLIC_KEY_SIZE))
+        {
+            return f;
+        }
+    }
+    return NULL;
+}
+
 
 struct friend_info *friend_info_by_friend_number(struct list_head *friends_info, const uint32_t friend_number)
 {

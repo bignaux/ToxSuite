@@ -42,7 +42,8 @@ struct friend_info {
 };
 
 struct friend_info *friend_info_add_entry(struct list_head *friends_info, const uint32_t friend_number);
-struct friend_info *friend_info_by_public_key(struct list_head *friends_info, const char*public_key);
+struct friend_info *friend_info_by_public_keybin(struct list_head *friends_info, const uint8_t *public_key); // prefer this!
+struct friend_info *friend_info_by_public_keyhex(struct list_head *friends_info, const char*public_key);
 struct friend_info *friend_info_by_friend_number(struct list_head *friends_info, const uint32_t friend_number);
 
 void friend_info_destroy(struct friend_info *friend);

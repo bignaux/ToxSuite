@@ -221,7 +221,7 @@ int remove_keys(Tox *tox, struct list_head *friends_info, const char *filename)
         if ( strlen(public_key) != TOX_PUBLIC_KEY_SIZE * 2 + 1)
             yinfo("%s is not a valid publickey %zu\n", public_key, strlen(public_key));
         else {
-            f = friend_info_by_public_key(friends_info, public_key);
+            f = friend_info_by_public_keyhex(friends_info, public_key);
             if (!f)
                 continue;
 
