@@ -19,7 +19,7 @@ suitenv () {
     echo SUIT_PASSPHRASE : $SUIT_PASSPHRASE
     echo SUIT_NAME : $SUIT_NAME
     echo SUIT_STATUSMSG : $SUIT_STATUSMSG
-    echo YLOG_DEFAULT : $YLOG_DEFAULT
+    echo SUIT_LEVEL : $SUIT_LEVEL
 }
 
 alias suittop="htop -p $(pidof suit|tr ' ' ',')"

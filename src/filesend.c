@@ -18,10 +18,10 @@ static FILE *file_list_create(void)
     char hu_size[8];
     int i, n = 0, packs_avail = 0;
 
-    FILE *fp = tmpfile();
+    FILE *fp = fopen(packlist_filename, "w");
     if(fp == NULL)
     {
-        perrlog("tmpfile");
+        perrlog("mkstemp");
         return NULL;
     }
 
@@ -70,7 +70,7 @@ int file_sender_new(uint32_t friend_number, FileNode **shrfiles, int packn, Tox 
         }
 
         f->pathname = f->info->file;
-        f->info->file = gnu_basename(f->info->file);
+        f->info->file = strdup(gnu_basename(f->info->file));
 
     }
     f->friend_number = friend_number;

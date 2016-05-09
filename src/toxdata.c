@@ -50,7 +50,11 @@ int load_profile(Tox **tox, struct Tox_Options *options, const char *data_filena
     if (!file)
         return -1;
 
-    stat(data_filename, &sb);
+    if (stat(data_filename, &sb)) {
+        fclose(file);
+        return -1;
+    }
+
     char * date = strdup(ctime((time_t*)&sb.st_mtim.tv_sec));
     date[strlen(date) -1] = '\0';
 

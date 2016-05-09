@@ -63,7 +63,7 @@ void calltest_init(ToxAV *toxav)
     toxav_callback_call(toxav, call, NULL);
     toxav_callback_call_state(toxav, call_state, NULL);
     toxav_callback_audio_receive_frame(toxav, audio_receive_frame, NULL);
-    toxav_callback_video_receive_frame(toxav, video_receive_frame, NULL);
+//    toxav_callback_video_receive_frame(toxav, video_receive_frame, NULL);
     toxav_callback_bit_rate_status(toxav, bit_rate_status_cb, NULL);
 }
 

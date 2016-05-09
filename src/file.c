@@ -74,7 +74,7 @@ struct FileSender* FileSender_new(struct list_head* FileQueue)
     f = malloc(sizeof(struct FileSender));
     memset(f, 0, sizeof(struct FileSender));
     f->info = malloc(sizeof(struct FileNode));
-//    memset(f, 0, sizeof(struct FileNode));
+    memset(f->info, 0, sizeof(struct FileNode));
     /* set default values */
     //    f->kind = TOX_FILE_KIND_DATA;
     //    f->file = NULL;
@@ -86,9 +86,20 @@ void FileSender_destroy(struct FileSender* f)
 {
     list_del(&f->list);
     if(f->file) fclose(f->file);
-    if(f->info->BLAKE2b) free(f->info->BLAKE2b);
-    if(f->info->file) free(f->info->file);
-    if(f->info) free(f->info);
+    if(f->info) {
+        ytrace("FileSender_destroy f->info");
+        if(f->info->BLAKE2b) {
+            ytrace("FileSender_destroy f->info->BLAKE2b");
+            free(f->info->BLAKE2b);
+        }
+        if(f->info->file) {
+            ytrace("FileSender_destroy f->info->file");
+            free(f->info->file);
+        }
+        ytrace("FileSender_destroy f->info");
+        free(f->info);
+    }
+    ytrace("FileSender_destroy f");
     free(f);
 }
 
@@ -130,7 +141,7 @@ uint32_t add_filesender(Tox* m, FileSender* f)
     ydebug("add_filesender %s", fn->file);
 
     f->file_number = tox_file_send(m, f->friend_number, f->kind, fn->length, fn->BLAKE2b, (uint8_t*)fn->file,
-        strlen(fn->file), &err);
+                                   strlen(fn->file), &err);
 
     if (err != TOX_ERR_FILE_SEND_OK)
         ywarn("add_filesender error %d", err);
@@ -145,7 +156,7 @@ uint32_t add_filesender(Tox* m, FileSender* f)
  */
 
 void file_chunk_request_cb(Tox* tox, uint32_t friend_number, uint32_t file_number, uint64_t position, size_t length,
-    void* user_data)
+                           void* user_data)
 {
     uint8_t* data;
     size_t len;
@@ -176,7 +187,7 @@ void file_chunk_request_cb(Tox* tox, uint32_t friend_number, uint32_t file_numbe
 }
 
 void file_recv_control_cb(Tox* tox, uint32_t friend_number, uint32_t file_number, TOX_FILE_CONTROL control,
-    void* user_data)
+                          void* user_data)
 {
     struct FileSender* f = FileSender_get(&FilesSender, friend_number, file_number);
     switch (control) {
@@ -201,7 +212,7 @@ void file_recv_control_cb(Tox* tox, uint32_t friend_number, uint32_t file_number
  ******************************************************************************/
 
 void file_recv_cb(Tox* tox, uint32_t friend_number, uint32_t file_number, uint32_t type, uint64_t file_size,
-    const uint8_t* filename, size_t filename_length, void* user_data)
+                  const uint8_t* filename, size_t filename_length, void* user_data)
 {
     if (type == TOX_FILE_KIND_AVATAR)
         yinfo("Avatar not supported yet.");
@@ -224,7 +235,7 @@ void file_recv_cb(Tox* tox, uint32_t friend_number, uint32_t file_number, uint32
  * look toxcore/testing/tox_sync.c => add file queue for user.
  */
 void file_recv_chunk_cb(Tox* tox, uint32_t friend_number, uint32_t file_number, uint64_t position, const uint8_t* data,
-    size_t length, void* user_data)
+                        size_t length, void* user_data)
 {
     char filename[256];
 

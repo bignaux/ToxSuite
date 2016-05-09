@@ -90,7 +90,7 @@ int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
         }
         fwrite(msg, blen, 1, file);
         fclose(file);
-    }
+    } else unlink("savesender.dat");
     return 0;
 }
 
@@ -117,7 +117,7 @@ int load_senders(struct list_head* FileQueue, struct list_head *friends_info)
     FILE *file;
     char *msg;
     be_node *ROOT, *filesend, *toxid, *info, *path, *name, *hash, *length;
-    uint64_t filesize;
+    int64_t filesize;
     struct friend_info *fr;
     int i;
 
@@ -131,14 +131,15 @@ int load_senders(struct list_head* FileQueue, struct list_head *friends_info)
     filesize = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    // empty queue
-    if (filesize < 2)
-        return 0;
-
     msg = malloc(filesize);
-    fread(msg, filesize, 1, file);
-    fclose(file);
+    if(fread(msg, filesize, 1, file) < 1) {
+        yerr("Can't read savesender.dat.");
+        free(msg);
+        fclose(file);
+        return -1;
+    }
 
+    fclose(file);
     ROOT = be_decoden(msg, filesize);
     free(msg);
 
@@ -166,7 +167,7 @@ int load_senders(struct list_head* FileQueue, struct list_head *friends_info)
                 toxid = filesend->val.d[i].val;
                 fr = friend_info_by_public_key(friends_info,toxid->val.s);
                 if(!fr)
-                    return -1;
+                    break;
                 ydebug("load_senders: fr->friend_number %d", fr->friend_number);
                 f->friend_number = fr->friend_number;
                 ydebug("fn=%d tox:%s",f->friend_number, toxid->val.s);

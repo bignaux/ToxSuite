@@ -38,7 +38,9 @@ char *human_readable_id(uint8_t *address, uint16_t length)
     return strdup(id);
 }
 
-/* cut absolute pathname to filename */
+/* cut absolute pathname to filename
+ * /!\ it uses strrchr : no to be freed!
+ */
 char *gnu_basename(char *path)
 {
     char *base = strrchr(path, '/');

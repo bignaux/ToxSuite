@@ -155,7 +155,7 @@ void redirect_output()
 {
     // these lines are to direct the stdout and stderr to log files we can access even when run as a daemon (after the possible help info is displayed.)
     //open up the files we want to use for out logs
-    uint32_t new_stderr, new_stdout;
+    int32_t new_stderr, new_stdout;
     new_stderr = open("suit_error.log", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     new_stdout = open("suit_debug.log", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
