@@ -14,7 +14,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* read https://github.com/irungentoo/Tox_Client_Guidelines/blob/master/Important/File_Transfers.md */
+/* read https://github.com/irungentoo/Tox_Client_Guidelines/blob/master/Important/File_Transfers.md
+ *
+ */
 
 #include "tsfiles.h"
 #include "ylog/ylog.h"
@@ -40,13 +42,61 @@ void encode_FileNode(be_node *info, const FileNode *fn)
     free(blake);
 }
 
+int NumDigits(int x)
+{
+    x = abs(x);
+    return (x < 10 ? 1 :
+        (x < 100 ? 2 :
+        (x < 1000 ? 3 :
+        (x < 10000 ? 4 :
+        (x < 100000 ? 5 :
+        (x < 1000000 ? 6 :
+        (x < 10000000 ? 7 :
+        (x < 100000000 ? 8 :
+        (x < 1000000000 ? 9 :
+        10)))))))));
+}
+
+// approximation
+// TODO add sign support and long long int.
+size_t be_size(be_node *node)
+{
+    size_t counter = 0;
+    size_t tmp;
+
+    switch(node->type) {
+    case BE_STR:
+        tmp = strlen(node->val.s);
+        counter += tmp + NumDigits(tmp) + 1; // :
+        break;
+    case BE_INT:
+        counter += NumDigits(node->val.i) + 2; // ie
+        break;
+    case BE_LIST:
+        for(int i=0; node->val.l[i]; i++) {
+            counter += be_size(node->val.l[i]);
+        }
+        counter += 2; // le
+        break;
+    case BE_DICT:
+        for(int i=0; node->val.d[i].val; i++) {
+            counter += be_size(node->val.d[i].val);
+            tmp = strlen(node->val.d[i].key);
+            counter += tmp + NumDigits(tmp) + 1; // :
+        }
+        counter += 2; // de
+        break;
+    }
+    return counter;
+}
+
 // data to return to friends.
 void dump_shrlist()
 {
     FileNode *fn, **shrlist = file_get_shared();
     int blen, shrlen = file_get_shared_len();
     be_node *ROOT, *info;
-    char msg[5000]; // TODO malloc
+    char *msg;
     FILE *file;
 
     ROOT = be_create_list();
@@ -57,7 +107,11 @@ void dump_shrlist()
         encode_FileNode(info, fn);
         be_add_list(ROOT, info);
     }
-    blen = be_encode(ROOT, msg, 5000);
+    blen = be_size(ROOT) +1;  // 'why +1 ? '\0' ?
+    ydebug("be_size = %d", blen);
+    msg = malloc(blen + 1);
+    blen = be_encode(ROOT, msg, blen);
+    ydebug("be_encode = %d", blen);
     be_free(ROOT);
 
     if(blen > 2) {
@@ -70,6 +124,7 @@ void dump_shrlist()
         fwrite(msg, blen, 1, file);
         fclose(file);
     }
+    free(msg);
 }
 
 int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
@@ -77,7 +132,7 @@ int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
     struct FileSender* f;
     struct friend_info *fr;
     struct FileNode *fn;
-    char msg[5000]; // TODO malloc
+    char *msg;
 
     int blen;
     be_node *ROOT, *filesend, *toxid, *info, *path;
@@ -107,7 +162,9 @@ int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
         be_add_list(ROOT, filesend);
 
     }
-    blen = be_encode(ROOT, msg, 5000);
+    blen = be_size(ROOT) +1;
+    msg = malloc(blen);
+    blen = be_encode(ROOT, msg, blen);
     be_free(ROOT);
 
     if(blen > 2) {
@@ -121,6 +178,7 @@ int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
         fclose(file);
     } else unlink("savesender.dat");
 
+    free(msg);
     return 0;
 }
 

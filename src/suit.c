@@ -405,11 +405,8 @@ int main(int argc, char **argv)
     save_senders(&FilesSender, &si->friends_info);
     save_profile(si->tox,si->data_filename, passphrase);
     calltest_destroy(si->toxav);
-    ydebug("salut ici");
     FileQueue_destroy(&FilesSender);
-    ydebug("salut ici une fois!");
     FileQueue_destroy(&FileQueueLoaded);
-    ydebug("salut ici aussi");
     toxav_kill(si->toxav);
     tox_kill(si->tox);
     return EXIT_SUCCESS;

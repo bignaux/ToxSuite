@@ -1,3 +1,21 @@
+/*
+ *  Copyright (C) loadletter @ https://github.com/loadletter/tox-xd
+ *  Copyright (C) Ronan Bignaux
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +39,7 @@ static FILE *file_list_create(void)
     FILE *fp = fopen(packlist_filename, "w");
     if(fp == NULL)
     {
-        perrlog("mkstemp");
+        perrlog("fopen");
         return NULL;
     }
 
@@ -53,25 +71,28 @@ int file_sender_new(uint32_t friend_number, FileNode **shrfiles, int packn, Tox 
     {
         /* create packlist */
         f->file = file_list_create();
-        if(!f->file)
-            return FILESEND_ERR_FILEIO; //todo : destroyer
-        f->info->file = packlist_filename;
-        f->pathname = packlist_filename; //todo
+        if(!f->file) {
+            FileSender_destroy(f);
+            return FILESEND_ERR_FILEIO;
+        }
+        f->info->file = strdup(packlist_filename);
+        f->pathname = strdup(packlist_filename);
     }
     else
     {
         /* use existing file */
-        f->info = shrfiles[packn];
-        f->file = fopen(f->info->file, "r");
+        ytrace("copy f->info from shrfiles");
+        memcpy(f->info, shrfiles[packn], sizeof(struct FileNode));
+        memcpy(f->info->BLAKE2b, shrfiles[packn]->BLAKE2b, TOX_FILE_ID_LENGTH);
+        f->info->file = strdup(gnu_basename(shrfiles[packn]->file));
+        f->pathname = strdup(shrfiles[packn]->file);
+        f->file = fopen(f->pathname, "r");
         if (f->file == NULL)
         {
+            FileSender_destroy(f);
             perrlog("fopen");
             return FILESEND_ERR_FILEIO;
         }
-
-        f->pathname = f->info->file;
-        f->info->file = strdup(gnu_basename(f->info->file));
-
     }
     f->friend_number = friend_number;
     add_filesender(m, f);

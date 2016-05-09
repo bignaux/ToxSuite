@@ -48,6 +48,9 @@ static void (*file_new_c)(FileNode *, int) = NULL;
 /* prototypes */
 static int filenode_dump(FileNode *fnode, char *path);
 
+/* tox_hash() is sha256.
+ *
+ */
 static int file_checksumcalc_noblock(uint8_t *BLAKE2b, char *filename)
 {
     static FILE *f = NULL;
