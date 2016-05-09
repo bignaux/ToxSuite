@@ -74,7 +74,6 @@ static void cmd_info(Tox *m, int friendnum, int argc, char (*argv)[MAX_ARGS_SIZE
 
     fn = fnode[packn];
     blake = human_readable_id(fn->BLAKE2b, TOX_FILE_ID_LENGTH);
-    blake[strlen(blake)-1] = '\0'; // TODO verify that
     human_readable_filesize(hu_size, fn->length);
     timestr = asctime(gmtime(&fn->mtime));
     timestr[strlen(timestr) - 1] = '\0'; /* remove newline that asctime adds */

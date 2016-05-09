@@ -17,34 +17,56 @@
 /* read https://github.com/irungentoo/Tox_Client_Guidelines/blob/master/Important/File_Transfers.md
  *
  */
+#define _GNU_SOURCE // rawmemchr
 
 #include "tsfiles.h"
 #include "ylog/ylog.h"
 #include "bencode/bencode.h"
-#include "misc.h"
+//#include "misc.h"
 
 #include <stdio.h>
-
+#include <string.h> // rawmemchr
 #include "fileop.h" // file_get_shared
 
 void encode_FileNode(be_node *info, const FileNode *fn)
 {
     be_node *name, *hash, *length;
-    char *blake;
 
     name = be_create_str_wlen(fn->file, strlen(fn->file));
     length = be_create_int(fn->length);
-    blake = human_readable_id(fn->BLAKE2b, TOX_FILE_ID_LENGTH);
-    hash = be_create_str_wlen(blake, strlen(blake));
+    hash = be_create_str_wlen((char *)fn->BLAKE2b, TOX_FILE_ID_LENGTH);
     be_add_keypair(info, "name", name);
     be_add_keypair(info, "length", length);
     be_add_keypair(info, "hash", hash);
-    free(blake);
 }
 
-int NumDigits(int x)
+void decode_FileNode(FileNode *f, const be_node *info)
 {
-    x = abs(x);
+    be_node *name, *hash, *length;
+    for(int j=0; info->val.d[j].val;j++)
+    {
+        if(!strcmp("name",info->val.d[j].key)) {
+            name = info->val.d[j].val;
+            ydebug("%s", name->val.s);
+            f->file = strdup(name->val.s);
+        } else if (!strcmp("length",info->val.d[j].key)) {
+            length = info->val.d[j].val;
+            ydebug("%lld", length->val.i);
+            f->length = length->val.i;
+        } else if (!strcmp("hash",info->val.d[j].key)) {
+            hash = info->val.d[j].val;
+            f->BLAKE2b = malloc(TOX_FILE_ID_LENGTH);
+            memcpy(f->BLAKE2b, hash->val.s, TOX_FILE_ID_LENGTH);
+        }
+    }
+}
+
+// pickup on https://stackoverflow.com/questions/1489830/efficient-way-to-determine-number-of-digits-in-an-integer
+// approximation
+// TODO add sign support
+long long int NumDigits(long long int x)
+{
+    x = llabs(x);
     return (x < 10 ? 1 :
         (x < 100 ? 2 :
         (x < 1000 ? 3 :
@@ -57,16 +79,16 @@ int NumDigits(int x)
         10)))))))));
 }
 
-// approximation
-// TODO add sign support and long long int.
+
 size_t be_size(be_node *node)
 {
     size_t counter = 0;
     size_t tmp;
+    char *p;
 
     switch(node->type) {
     case BE_STR:
-        tmp = strlen(node->val.s);
+        tmp = be_str_len(node);
         counter += tmp + NumDigits(tmp) + 1; // :
         break;
     case BE_INT:
@@ -109,13 +131,12 @@ void dump_shrlist()
     }
     blen = be_size(ROOT) +1;  // 'why +1 ? '\0' ?
     ydebug("be_size = %d", blen);
-    msg = malloc(blen + 1);
+    msg = malloc(blen);
     blen = be_encode(ROOT, msg, blen);
     ydebug("be_encode = %d", blen);
     be_free(ROOT);
 
     if(blen > 2) {
-        ydebug("%d : %s", blen, msg);
         file = fopen("savfileshr.dat","w");
         if (!file) {
             yerr("can't save savfileshr.dat");
@@ -196,27 +217,6 @@ int resume_send(Tox *tox, struct list_head* FileQueueSend, struct list_head* Fil
         add_filesender(tox, f);
     }
     return 0;
-}
-
-void decode_FileNode(FileNode *f, const be_node *info)
-{
-    be_node *name, *hash, *length;
-    for(int j=0; info->val.d[j].val;j++)
-    {
-        if(!strcmp("name",info->val.d[j].key)) {
-            name = info->val.d[j].val;
-            ydebug("%s", name->val.s);
-            f->file = strdup(name->val.s);
-        } else if (!strcmp("length",info->val.d[j].key)) {
-            length = info->val.d[j].val;
-            ydebug("%lld", length->val.i);
-            f->length = length->val.i;
-        } else if (!strcmp("hash",info->val.d[j].key)) {
-            hash = info->val.d[j].val;
-            ydebug("%s", hash->val.s);
-            f->BLAKE2b = (uint8_t*) strdup(hash->val.s);
-        }
-    }
 }
 
 int load_senders(struct list_head* FileQueue, struct list_head *friends_info)
