@@ -9,6 +9,12 @@ Current limitation
 * since the crypto API ensures that no packet are lost or corrupted, the only way tox client verify that a file is the same is by filesize. It's not robust since the file can have changed and keep the same size (as logrotate one). We could also want to resume a file from another friend/toxid. Client have to allow resume, check if the file is same asking a chunk it already have, and compare the chunk checksum with a request one.
 
 https://github.com/irungentoo/Tox_Client_Guidelines/blob/master/Important/File_Transfers.md
+https://wiki.theory.org/BitTorrentSpecification#Bencoding
+
+State of client
+
+* https://github.com/tux3/qTox/issues/1532
+* claim to be supported by uTox
 
 Consideration on file sharing
 

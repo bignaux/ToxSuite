@@ -23,19 +23,64 @@
 
 #include <stdio.h>
 
+#include "fileop.h" // file_get_shared
+
+void encode_FileNode(be_node *info, const FileNode *fn)
+{
+    be_node *name, *hash, *length;
+    char *blake;
+
+    name = be_create_str_wlen(fn->file, strlen(fn->file));
+    length = be_create_int(fn->length);
+    blake = human_readable_id(fn->BLAKE2b, TOX_FILE_ID_LENGTH);
+    hash = be_create_str_wlen(blake, strlen(blake));
+    be_add_keypair(info, "name", name);
+    be_add_keypair(info, "length", length);
+    be_add_keypair(info, "hash", hash);
+    free(blake);
+}
+
+// data to return to friends.
+void dump_shrlist()
+{
+    FileNode *fn, **shrlist = file_get_shared();
+    int blen, shrlen = file_get_shared_len();
+    be_node *ROOT, *info;
+    char msg[5000]; // TODO malloc
+    FILE *file;
+
+    ROOT = be_create_list();
+    for(int i=0; i<shrlen; i++)
+    {
+        fn = shrlist[i];
+        info = be_create_dict();
+        encode_FileNode(info, fn);
+        be_add_list(ROOT, info);
+    }
+    blen = be_encode(ROOT, msg, 5000);
+    be_free(ROOT);
+
+    if(blen > 2) {
+        ydebug("%d : %s", blen, msg);
+        file = fopen("savfileshr.dat","w");
+        if (!file) {
+            yerr("can't save savfileshr.dat");
+            return;
+        }
+        fwrite(msg, blen, 1, file);
+        fclose(file);
+    }
+}
+
 int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
 {
     struct FileSender* f;
     struct friend_info *fr;
     struct FileNode *fn;
     char msg[5000]; // TODO malloc
-    char *blake;
 
-    //    char *tmp;
-    //    static int prevsz = 0;
-    //    static char *prevmsg;
     int blen;
-    be_node *ROOT, *filesend, *toxid, *info, *path, *name, *hash, *length;
+    be_node *ROOT, *filesend, *toxid, *info, *path;
     FILE *file;
 
     ydebug("entering save_senders");
@@ -55,32 +100,16 @@ int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
         toxid = be_create_str_wlen(fr->tox_id_hex, strlen(fr->tox_id_hex));
         path = be_create_str_wlen(f->pathname, strlen(f->pathname));
         info = be_create_dict();
-        name = be_create_str_wlen(fn->file, strlen(fn->file));
-        length = be_create_int(fn->length);
-        blake = human_readable_id(fn->BLAKE2b, TOX_FILE_ID_LENGTH);
-        hash = be_create_str_wlen(blake, strlen(blake));
+        encode_FileNode(info, fn);
         be_add_keypair(filesend, "toxid", toxid);
         be_add_keypair(filesend, "path", path);
-        be_add_keypair(info, "name", name);
-        be_add_keypair(info, "length", length);
-        be_add_keypair(info, "hash", hash);
         be_add_keypair(filesend, "info", info);
         be_add_list(ROOT, filesend);
-        free(blake);
+
     }
     blen = be_encode(ROOT, msg, 5000);
     be_free(ROOT);
 
-    //    if(blen != prevsz) {
-    //        prevsz = blen;
-    //        tmp = realloc(prevmsg, blen);
-    //        if(!tmp)
-    //            return -1;
-    //        prevmsg = tmp;
-    //    } else if(!strncmp(msg, prevmsg, blen))
-    //       return 0;
-
-    //    memcpy(prevmsg,msg,blen);
     if(blen > 2) {
         ydebug("%d : %s", blen, msg);
         file = fopen("savesender.dat","w");
@@ -91,6 +120,7 @@ int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
         fwrite(msg, blen, 1, file);
         fclose(file);
     } else unlink("savesender.dat");
+
     return 0;
 }
 
@@ -110,13 +140,33 @@ int resume_send(Tox *tox, struct list_head* FileQueueSend, struct list_head* Fil
     return 0;
 }
 
+void decode_FileNode(FileNode *f, const be_node *info)
+{
+    be_node *name, *hash, *length;
+    for(int j=0; info->val.d[j].val;j++)
+    {
+        if(!strcmp("name",info->val.d[j].key)) {
+            name = info->val.d[j].val;
+            ydebug("%s", name->val.s);
+            f->file = strdup(name->val.s);
+        } else if (!strcmp("length",info->val.d[j].key)) {
+            length = info->val.d[j].val;
+            ydebug("%lld", length->val.i);
+            f->length = length->val.i;
+        } else if (!strcmp("hash",info->val.d[j].key)) {
+            hash = info->val.d[j].val;
+            ydebug("%s", hash->val.s);
+            f->BLAKE2b = (uint8_t*) strdup(hash->val.s);
+        }
+    }
+}
 
 int load_senders(struct list_head* FileQueue, struct list_head *friends_info)
 {
     FileSender *f;
     FILE *file;
     char *msg;
-    be_node *ROOT, *filesend, *toxid, *info, *path, *name, *hash, *length;
+    be_node *ROOT, *filesend, *toxid, *info, *path;
     int64_t filesize;
     struct friend_info *fr;
     int i;
@@ -162,12 +212,13 @@ int load_senders(struct list_head* FileQueue, struct list_head *friends_info)
         for (i = 0; filesend->val.d[i].val; ++i)
         {
             key = filesend->val.d[i].key;
-            if (!strcmp("toxid",key))
-            {
+            if (!strcmp("toxid",key)) {
                 toxid = filesend->val.d[i].val;
                 fr = friend_info_by_public_key(friends_info,toxid->val.s);
-                if(!fr)
+                if(!fr) {
+                    FileSender_destroy(f);
                     break;
+                }
                 ydebug("load_senders: fr->friend_number %d", fr->friend_number);
                 f->friend_number = fr->friend_number;
                 ydebug("fn=%d tox:%s",f->friend_number, toxid->val.s);
@@ -177,26 +228,10 @@ int load_senders(struct list_head* FileQueue, struct list_head *friends_info)
                 f->pathname = strdup(path->val.s);
             } else if (!strcmp("info",key)) {
                 info = filesend->val.d[i].val;
-                for(int j=0; info->val.d[j].val;j++)
-                {
-                    if(!strcmp("name",info->val.d[j].key)) {
-                        name = info->val.d[j].val;
-                        ydebug("%s", name->val.s);
-                        f->info->file = strdup(name->val.s);
-                    } else if (!strcmp("length",info->val.d[j].key)) {
-                        length = info->val.d[j].val;
-                        ydebug("%lld", length->val.i);
-                        f->info->length = length->val.i;
-                    } else if (!strcmp("hash",info->val.d[j].key)) {
-                        hash = info->val.d[j].val;
-                        ydebug("%s", hash->val.s);
-                        f->info->BLAKE2b = (uint8_t*) strdup(hash->val.s);
-                    }
-                }
+                decode_FileNode(f->info, info);
             }
         }
     }
-
     // TODO break when data are incomplete ?
     be_free(ROOT);
     return 0;

@@ -39,7 +39,7 @@ char *human_readable_id(uint8_t *address, uint16_t length)
 }
 
 /* cut absolute pathname to filename
- * /!\ it uses strrchr : no to be freed!
+ * /!\ it uses strrchr : not to be freed!
  */
 char *gnu_basename(char *path)
 {

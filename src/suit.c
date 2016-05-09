@@ -401,6 +401,7 @@ int main(int argc, char **argv)
     }
 
     ywarn("SIGINT/SIGTERM received, terminating...");
+    dump_shrlist();
     save_senders(&FilesSender, &si->friends_info);
     save_profile(si->tox,si->data_filename, passphrase);
     calltest_destroy(si->toxav);
