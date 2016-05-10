@@ -30,7 +30,7 @@ static void cmd_invite(Tox *m, int friendnum, int argc, char (*argv)[MAX_ARGS_SI
     }
 }
 
-static void cmd_help(Tox *m, int friendnum, int argc, char (*argv)[MAX_ARGS_SIZE])
+void cmd_help(Tox *m, int friendnum, int argc, char (*argv)[MAX_ARGS_SIZE])
 {
     TOX_ERR_FRIEND_SEND_MESSAGE error;
     char helpstr[] = "\n Supported commands:\n\
@@ -41,7 +41,7 @@ static void cmd_help(Tox *m, int friendnum, int argc, char (*argv)[MAX_ARGS_SIZE
             tox_friend_send_message(m, friendnum, TOX_MESSAGE_TYPE_NORMAL, (uint8_t *) helpstr, strlen(helpstr), &error);
 }
 
-static void cmd_info(Tox *m, int friendnum, int argc, char (*argv)[MAX_ARGS_SIZE])
+void cmd_info(Tox *m, int friendnum, int argc, char (*argv)[MAX_ARGS_SIZE])
 {
     TOX_ERR_FRIEND_SEND_MESSAGE error;
     const char formatstr[] = "Pack Info for Pack #%i:\n\
@@ -199,12 +199,6 @@ int group_chat_init(Tox *m)
     if(group_chat_number == -1)
         yerr("Failed to initialize groupchat");
     return group_chat_number;
-}
-
-
-void on_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE type, const uint8_t *message, size_t length, void *user_data)
-{
-    execute(tox, (char *) message, friend_number);
 }
 
 void on_new_file(FileNode *fn, int packn)

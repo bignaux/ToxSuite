@@ -42,7 +42,6 @@
 
 #include "fileop.h"
 #include "filesend.h"
-#include "callbacks.h"
 #include "tsfiles.h"
 
 static bool signal_exit = false;
@@ -52,7 +51,6 @@ static bool signal_exit = false;
 
 #define FRIEND_PURGE_INTERVAL SEC_PER_HOUR * HOUR_PER_DAY * 30
 #define GROUP_PURGE_INTERVAL 3600
-#define TOXXD true
 
 void self_connection_status(Tox *UNUSED(tox), TOX_CONNECTION status, void *UNUSED(userData))
 {
@@ -121,18 +119,8 @@ void callbacks_init(struct suit_info *si)
 
     tox_callback_self_connection_status(si->tox, self_connection_status, NULL);
 
-    /*tox-xd hack*/
-    /* Callbacks */
-    if (TOXXD)
-    {
-        tox_callback_friend_message(si->tox, on_message, NULL);
-        file_new_set_callback(on_new_file);
-    } else {
-        tox_callback_friend_message(si->tox, friend_message, si);
-    }
-
     /* suit core*/
-
+    tox_callback_friend_message(si->tox, friend_message, si);
     tox_callback_friend_request(si->tox, friend_request_cb, &si->friends_info);
     tox_callback_friend_name(si->tox, friend_name_cb, &si->friends_info);
     tox_callback_friend_status(si->tox, friend_status_cb, &si->friends_info);
@@ -185,8 +173,7 @@ int main(int argc, char **argv)
     const char *name = getenv("SUIT_NAME");
     const char *status_msg = getenv("SUIT_STATUSMSG");
     const char *home = getenv("SUIT_HOME");
-    const char *cachedir_path = "/tmp/testcache";
-    const char *shareddir_path = "/usr/share/zoneinfo/Europe/";
+    const char *shareddir_path = "upload";
     const char *debuglevel = getenv("SUIT_LEVEL");
 
     signal(SIGINT, handle_signal);
@@ -321,8 +308,9 @@ int main(int argc, char **argv)
 
 
 
-    int rc = filenode_load_fromdir(cachedir_path);
-    yinfo("Loaded %i files from cache", rc);
+//    int rc = filenode_load_fromdir(cachedir_path);
+//    yinfo("Loaded %i files from cache", rc);
+    load_shrlist("savfileshr.dat");
     /* checks if loaded files actually exist */
     file_recheck_callback(SIGUSR1);
     FileQueue_init(&FilesSender);
@@ -375,7 +363,7 @@ int main(int argc, char **argv)
 
         // see file_recheck
         if (nanosec_timeout(&tsfriend, &tpnow, 5000 * NSEC_PER_USEC)) {
-            file_do(shareddir_path, cachedir_path);
+            file_do(shareddir_path);
         }
 
         /* encryption could take some time - very low priority
@@ -401,7 +389,7 @@ int main(int argc, char **argv)
     }
 
     ywarn("SIGINT/SIGTERM received, terminating...");
-    dump_shrlist();
+    dump_shrlist("savfileshr.dat");
     save_senders(&FilesSender, &si->friends_info);
     save_profile(si->tox,si->data_filename, passphrase);
     calltest_destroy(si->toxav);

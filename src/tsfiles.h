@@ -8,7 +8,9 @@
 
 
 struct list_head FileQueueLoaded;
-void dump_shrlist();
+void dump_shrlist(const char*filename);
+int load_shrlist(const char *filename);
+
 //void encode_FileNode(be_node *info, const FileNode *fn);
 //void decode_FileNode(FileNode *f, const be_node *info);
 int save_senders(struct list_head* FileQueue, struct list_head *friends_info);

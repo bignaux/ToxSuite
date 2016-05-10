@@ -93,7 +93,7 @@ void FileSender_destroy(struct FileSender* f)
             free(f->info->BLAKE2b);
         }
         if(f->info->file) {
-            ytrace("FileSender_destroy f->info->file");
+            ytrace("FileSender_destroy f->info->file : %s", f->info->file);
             free(f->info->file);
         }
         ytrace("FileSender_destroy f->info");
@@ -109,7 +109,7 @@ void FileSender_destroy(struct FileSender* f)
  *
  ******************************************************************************/
 
-uint32_t add_filesender(Tox* m, FileSender* f)
+uint32_t add_filesender(Tox* tox, FileSender* f)
 {
     TOX_ERR_FILE_SEND err;
     FileNode *fn = f->info;
@@ -133,15 +133,20 @@ uint32_t add_filesender(Tox* m, FileSender* f)
         fseek(f->file, 0, SEEK_SET);
     }
 
+    ydebug("add_filesender %s", fn->file);
+
+    f->file_number = tox_file_send(tox, f->friend_number, f->kind, fn->length, fn->BLAKE2b, (uint8_t*)fn->file,
+                                   strlen(fn->file), &err);
+
     //TODO implement hash : file_checksumcalc_noblock
+    //need an hash to resume file
     if(!fn->BLAKE2b) {
+        fn->BLAKE2b = malloc(TOX_FILE_ID_LENGTH);
+        //        memset(fn->BLAKE2b, 0, TOX_FILE_ID_LENGTH);
+        tox_file_get_file_id(tox,  f->friend_number,  f->file_number, fn->BLAKE2b, NULL);
         ydebug("add_filesender need hash");
     }
 
-    ydebug("add_filesender %s", fn->file);
-
-    f->file_number = tox_file_send(m, f->friend_number, f->kind, fn->length, fn->BLAKE2b, (uint8_t*)fn->file,
-                                   strlen(fn->file), &err);
 
     if (err != TOX_ERR_FILE_SEND_OK)
         ywarn("add_filesender error %d", err);

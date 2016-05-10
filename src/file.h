@@ -14,7 +14,6 @@
 #include <stdbool.h>
 
 #include <tox/tox.h>
-//#include <tox/toxav.h>
 #include <sodium.h>
 
 #include "ylog/ylog.h"
@@ -32,25 +31,20 @@ typedef struct FileNode {
 typedef struct FileSender{
     /* shared informations */
 
-    FileNode *info; //TODO : array with multiple files, nested ?
+    FileNode *info; // TODO : array with multiple files, nested ?
+    char *pathname; // currently /full/path/filename
 
-    /* core information */
+    /* internal */
     FILE *file;
     uint32_t file_number;
     uint32_t friend_number;
+    uint32_t kind;
+    struct list_head list;
 
     /* Tox-xd */
     uint8_t accepted;
     time_t timestamp;
 
-    /* TS */
-    // TODO : bool erase_after_send
-    char *pathname; // currently /full/path/filename
-//    char *filename;
-    uint32_t kind;
-//    uint64_t file_size;
-//    uint8_t *file_id;
-    struct list_head list;
 } FileSender;
 
 struct list_head FilesSender;

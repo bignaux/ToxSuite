@@ -60,22 +60,11 @@ void decode_FileNode(FileNode *f, const be_node *info)
     }
 }
 
-// pickup on https://stackoverflow.com/questions/1489830/efficient-way-to-determine-number-of-digits-in-an-integer
-// approximation
-// TODO add sign support , llint => 19 digits
+//not very performant but do the job
 long long int NumDigits(long long int x)
 {
-    x = llabs(x);
-    return (x < 10 ? 1 :
-        (x < 100 ? 2 :
-        (x < 1000 ? 3 :
-        (x < 10000 ? 4 :
-        (x < 100000 ? 5 :
-        (x < 1000000 ? 6 :
-        (x < 10000000 ? 7 :
-        (x < 100000000 ? 8 :
-        (x < 1000000000 ? 9 :
-        10)))))))));
+    char buffer[22];
+    return sprintf(buffer, "%lld", x);
 }
 
 size_t be_node_len(be_node *node)
@@ -109,8 +98,75 @@ size_t be_node_len(be_node *node)
     return counter;
 }
 
+be_node *be_node_loadfile(const char *filename)
+{
+    FILE *file;
+    char *msg;
+    int64_t filesize;
+    be_node *ROOT;
+
+    file = fopen(filename, "r");
+    if(!file) {
+        ywarn("Can't open %s.", filename);
+        return NULL;
+    }
+
+    fseek(file, 0, SEEK_END);
+    filesize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    msg = malloc(filesize);
+    if(fread(msg, filesize, 1, file) < 1) {
+        yerr("Can't read %s.", filename);
+        free(msg);
+        fclose(file);
+        return NULL;
+    }
+
+    fclose(file);
+    ROOT = be_decoden(msg, filesize);
+    free(msg);
+
+    if (!ROOT) {
+        yerr("be_node_loadfile can't decode %s.", filename);
+        return NULL;
+    }
+
+#ifdef BE_DEBUG_DECODE
+    be_dump(ROOT);
+#endif
+    return ROOT;
+}
+
+int load_shrlist(const char *filename)
+{
+    FileNode **shr_list = file_get_shared();
+    int shr_list_len = file_get_shared_len();
+    be_node *ROOT;
+
+    ROOT = be_node_loadfile(filename);
+    if (!ROOT)
+        return -1;
+
+    ydebug("load_shrlist, shr_list_len=%d",shr_list_len);
+    for (int k=0; ROOT->val.l[k]; ++k)
+    {
+        shr_list = realloc(shr_list, sizeof(FileNode *) * (shr_list_len + 1));
+        if(!shr_list)
+        {
+            yerr("realloc");
+            return -1;
+        }
+        shr_list[shr_list_len] = malloc(sizeof(struct FileNode));
+        decode_FileNode(shr_list[shr_list_len], ROOT->val.l[k]); // +1?
+        shr_list_len++; //can't set outside fileop
+    }
+    be_free(ROOT);
+    return 0;
+}
+
 // data to return to friends.
-void dump_shrlist()
+void dump_shrlist(const char*filename)
 {
     FileNode *fn, **shrlist = file_get_shared();
     int blen, shrlen = file_get_shared_len();
@@ -134,9 +190,9 @@ void dump_shrlist()
     be_free(ROOT);
 
     if(blen > 2) {
-        file = fopen("savfileshr.dat","w");
+        file = fopen(filename,"w");
         if (!file) {
-            yerr("can't save savfileshr.dat");
+            yerr("can't save %s", filename);
             return;
         }
         fwrite(msg, blen, 1, file);
@@ -169,8 +225,8 @@ int save_senders(struct list_head* FileQueue, struct list_head *friends_info)
             break;
         filesend = be_create_dict();
         ytrace("fr->friend_number = %d , f->friend_number = %d", fr->friend_number, f->friend_number);
-//        ytrace("fr->tox_id_hex : %s , %zu", fr->tox_id_hex, strlen(fr->tox_id_hex));
-//        toxid = be_create_str_wlen(fr->tox_id_hex, strlen(fr->tox_id_hex));
+        //        ytrace("fr->tox_id_hex : %s , %zu", fr->tox_id_hex, strlen(fr->tox_id_hex));
+        //        toxid = be_create_str_wlen(fr->tox_id_hex, strlen(fr->tox_id_hex));
         toxid = be_create_str_wlen((char *)fr->tox_id_bin, TOX_PUBLIC_KEY_SIZE);
         path = be_create_str_wlen(f->pathname, strlen(f->pathname));
         info = be_create_dict();
@@ -220,43 +276,14 @@ int resume_send(Tox *tox, struct list_head* FileQueueSend, struct list_head* Fil
 int load_senders(struct list_head* FileQueue, struct list_head *friends_info)
 {
     FileSender *f;
-    FILE *file;
-    char *msg;
     be_node *ROOT, *filesend, *toxid, *info, *path;
-    int64_t filesize;
+
     struct friend_info *fr;
     int i;
 
-    file = fopen("savesender.dat", "r");
-    if(!file) {
-        ywarn("Can't open savesender.dat.");
+    ROOT = be_node_loadfile("savesender.dat");
+    if (!ROOT)
         return -1;
-    }
-
-    fseek(file, 0, SEEK_END);
-    filesize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    msg = malloc(filesize);
-    if(fread(msg, filesize, 1, file) < 1) {
-        yerr("Can't read savesender.dat.");
-        free(msg);
-        fclose(file);
-        return -1;
-    }
-
-    fclose(file);
-    ROOT = be_decoden(msg, filesize);
-    free(msg);
-
-    if (!ROOT) {
-        yerr("load_senders can't decode savesender.dat.");
-        return -1;
-    }
-
-#ifdef BE_DEBUG_DECODE
-    be_dump(ROOT);
-#endif
 
     char *key;
     for (int k=0; ROOT->val.l[k]; ++k)

@@ -34,6 +34,7 @@
 #include "misc.h"
 #include "fileop.h"
 #include "ylog/ylog.h"
+#include "tsfiles.h"
 
 #define HASHING_BUFSIZE 64 * 1024 /* make it bigger? */
 #define SHRDIR_MAX_DESCRIPTORS 6
@@ -46,7 +47,7 @@ static volatile sig_atomic_t file_recheck = false;
 /* callback for new file */
 static void (*file_new_c)(FileNode *, int) = NULL;
 /* prototypes */
-static int filenode_dump(FileNode *fnode, char *path);
+//static int filenode_dump(FileNode *fnode, char *path);
 
 /* tox_hash() is sha256.
  *
@@ -199,7 +200,7 @@ void file_recheck_callback(int signo)
  *
  * If the hashing flag was set, take it's number and start the hashing,
  * when the entire file has been read or an error occurs clear the hashing flag.*/
-int file_do(const char *shrdir, const char *cachedir)
+int file_do(const char *shrdir)
 {
     uint32_t i, t;
     int32_t rc, n = -1;
@@ -278,9 +279,9 @@ int file_do(const char *shrdir, const char *cachedir)
             yinfo("Hash: %i - %s", last, shr_list[last]->file);
 
             /* write filenode to cache */
-            char cachepath[PATH_MAX + 20];
-            snprintf(cachepath, sizeof(cachepath), "%s/%i", cachedir, last);
-            filenode_dump(shr_list[last], cachepath);
+//            char cachepath[PATH_MAX + 20];
+//            snprintf(cachepath, sizeof(cachepath), "%s/%i", cachedir, last);
+//            filenode_dump(shr_list[last], cachepath); // TODO
         }
 
         if(rc < 0)
@@ -303,196 +304,4 @@ FileNode **file_get_shared(void)
 int file_get_shared_len(void)
 {
     return shr_list_len;
-}
-
-/*
- * file format:
- * put all predictable things in the beginning
- * put filename last and without newline
- * example:
- * BLAKE2b
- * mtime
- * size
- * file
- */
-static FileNode *filenode_load(char *path)
-{
-    char BLAKE2b[TOX_FILE_ID_LENGTH * 2 +1], filename[PATH_MAX + 1];
-    char *pos;
-
-    FILE *fp = fopen(path, "rb");
-    if(!fp)
-    {
-        perrlog("fopen");
-        return NULL;
-    }
-
-    FileNode *fn = malloc(sizeof(FileNode));
-    if(!fn)
-    {
-        perrlog("malloc");
-        fclose(fp);
-        return NULL;
-    }
-
-    fn->BLAKE2b = malloc(TOX_FILE_ID_LENGTH);
-    if(!fn->BLAKE2b)
-    {
-        perrlog("malloc");
-        fclose(fp);
-        free(fn);
-        return NULL;
-    }
-
-    if(fscanf(fp, "%64s\n", BLAKE2b) != 1) //TODO : variable format
-        goto parserr;
-    if(fscanf(fp, "%lld\n", (long long * ) &fn->mtime) != 1)
-        goto parserr;
-    if(fscanf(fp, "%lld\n", (long long * ) &fn->length) != 1)
-        goto parserr;
-
-    int rc = fread(filename, 1, PATH_MAX, fp);
-    filename[rc] = '\0';
-
-    if(ferror(fp))
-    {
-        perror("fread");
-        goto parserr;
-    }
-
-    if(feof(fp))
-    {
-        uint8_t i;
-        pos = BLAKE2b;
-        // TODO : use sodium
-        for (i = 0; i < TOX_FILE_ID_LENGTH; ++i, pos += 2)
-            sscanf(pos, "%2hhx", &fn->BLAKE2b[i]);
-
-        /* file_exists_shared will check later if they actually exist */
-        fn->exists = false;
-
-        fn->file = strdup(filename);
-        if(fn->file == NULL)
-        {
-            perrlog("strdup");
-            goto parserr;
-        }
-        fclose(fp);
-        return fn;
-    }
-
-parserr:
-    yerr("Error parsing: %s", path);
-    fclose(fp);
-    free(fn->BLAKE2b);
-    free(fn);
-    return NULL;
-}
-
-static int filenode_dump(FileNode *fnode, char *path)
-{
-    char *BLAKE2b;
-    FILE *fp = fopen(path, "wb");
-    if(fp == NULL)
-    {
-        perrlog("fopen");
-        return -1;
-    }
-
-    BLAKE2b = human_readable_id(fnode->BLAKE2b, TOX_FILE_ID_LENGTH);
-
-    fprintf(fp, "%s\n", BLAKE2b);
-    fprintf(fp, "%lld\n", (long long) fnode->mtime);
-    fprintf(fp, "%lld\n", (long long) fnode->length);
-    fprintf(fp, "%s", fnode->file);
-
-    free(BLAKE2b);
-
-    if(fclose(fp) != 0)
-    {
-        perrlog("fclose");
-        return -1;
-    }
-    return 0;
-}
-
-static int directory_count(const char *path)
-{
-    DIR * dirp;
-    struct dirent * entry;
-    int count = 0;
-    uint8_t i;
-    bool digitflag;
-
-    dirp = opendir(path);
-    if(dirp == NULL)
-    {
-        perrlog("opendir");
-        return -1;
-    }
-
-    while((entry = readdir(dirp)) != NULL)
-    {
-        digitflag = true;
-        if (entry->d_type == DT_REG) /* If the entry is a regular file */
-        {
-            /* check that there is no extraneus file in the cachedir */
-            for(i=0; i<strlen(entry->d_name); i++)
-                if(!isdigit(entry->d_name[i]))
-                {
-                    digitflag = false;
-                    ywarn("Unknown file in cache dir, skipping: %s", entry->d_name);
-                    break;
-                }
-
-            if(digitflag)
-                count++;
-        }
-    }
-
-    if(closedir(dirp) != 0)
-    {
-        perrlog("closedir");
-        return -1;
-    }
-
-    return count;
-}
-
-int filenode_load_fromdir(const char *cachedir)
-{
-    FileNode *fn;
-    char pathbuf[PATH_MAX + 20];
-    int i = 0;
-
-    int dircount = directory_count(cachedir);
-    if(dircount == 0)
-        return 0;
-    if(dircount < 0)
-        return -1;
-
-    while(i < dircount)
-    {
-        snprintf(pathbuf, sizeof(pathbuf), "%s/%i", cachedir, i);
-        ydebug("%i - %i", i, shr_list_len);
-        if(access(pathbuf, R_OK|W_OK) != -1)
-        {
-            fn = filenode_load(pathbuf);
-            if(fn)
-            {
-                shr_list = realloc(shr_list, sizeof(FileNode *) * (shr_list_len + 1));
-                if(!shr_list)
-                {
-                    perrlog("realloc");
-                    return -1;
-                }
-                shr_list[shr_list_len] = fn;
-                shr_list_len++;
-            }
-        }
-
-        i++;
-    }
-
-    return i;
 }

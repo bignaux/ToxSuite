@@ -21,6 +21,7 @@
 #include "file.h"
 #include "ylog/ylog.h"
 #include "unused.h"
+#include "callbacks.h"
 
 #include <getopt.h>
 
@@ -111,6 +112,11 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
         return;
     };
 
+    static bool xdcc = false;
+    if (xdcc) {
+        execute(tox, (char *)message, friend_number);
+    }
+
     ydebug("Recv: %s", message);
 
     struct suit_info *si = user_data;
@@ -133,19 +139,20 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
 	while (1) {
 		int this_option_optind = optind ? optind : 1;
 		int option_index = 0;
-		static struct option long_options[] = {
-			{ "addfriend",	required_argument,     NULL,		     'a' },
-			{ "banner",	no_argument,	       NULL,		     'b' },
-            { "callme",	optional_argument,     NULL,		     'c' },
-			{ "forgetme",	no_argument,	       NULL,		     'g' },
-			{ "friends",	no_argument,	       NULL,		     'f' },
-			{ "info",	no_argument,	       NULL,		     'i' },
-            { "sendimage", no_argument,	       NULL,		     't' },
-			{ "pamarkdown", no_argument,	       NULL,		     'p' },
-            { "shema", no_argument,	       NULL,		     's' },
-            { "whoiam", no_argument,	       NULL,		     'w' },
-			{ NULL,		0,		       NULL,		     0	 }
-		};
+        static struct option long_options[] = {
+        { "addfriend",	required_argument,     NULL,		     'a' },
+        { "banner",	no_argument,	       NULL,		     'b' },
+        { "callme",	optional_argument,     NULL,		     'c' },
+        { "forgetme",	no_argument,	       NULL,		     'g' },
+        { "friends",	no_argument,	       NULL,		     'f' },
+        { "info",	no_argument,	       NULL,		     'i' },
+        { "sendimage", no_argument,	       NULL,		     't' },
+        { "pamarkdown", no_argument,	       NULL,		     'p' },
+        { "shema", no_argument,	       NULL,		     's' },
+        { "whoiam", no_argument,	       NULL,		     'w' },
+        { "xdcc", no_argument,	       NULL,		     'x' },
+        { NULL,		0,		       NULL,		     0	 }
+        };
 
 		int c = getopt_long(argc, argv, "a:bcgfi",
 				    long_options, &option_index);
@@ -243,6 +250,9 @@ void friend_message(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE __attribu
             friend_info_print(stream, f);
             break;
 
+        case 'x':
+            xdcc = !xdcc;
+            break;
 		case '?':
 			fprintf(stream, "option %s not implemented,optopt=%c\n", argv[1], optopt);
 			break;
